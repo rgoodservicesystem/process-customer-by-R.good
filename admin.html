@@ -152,9 +152,21 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // ================= CONFIG (ตั้งค่า Supabase ของคุณที่นี่) =================
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
-const SUPABASE_ANON_KEY = 'vyfjqpwmvjborjrrtpne';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// --- เพิ่มส่วนนี้: ให้ Checkbox หัวตารางทำงาน ---
+$('chkAllVisible').addEventListener('change', (e)=>{
+  const isChecked = e.target.checked;
+  // 1. ติ๊กทุกช่องที่แสดงอยู่
+  document.querySelectorAll('.rowchk').forEach(chk => {
+    chk.checked = isChecked;
+    const id = chk.dataset.id;
+    if(isChecked) selectedIds.add(id); else selectedIds.delete(id);
+  });
+  // 2. อัปเดตตัวเลขจำนวนที่เลือก
+  $('adminCount').textContent = `เลือก ${selectedIds.size} / แสดง ${filteredRows.length} / ทั้งหมด ${cachedRows.length}`;
+});
 
 // table names
 const COMPANIES_TABLE = 'companies';
@@ -469,6 +481,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await loadCompanies();
 });
 
+// --- เพิ่มส่วนนี้: ปุ่มกรองเฉพาะรายการที่มีหมายเหตุ ---
+$('btnNotePage').addEventListener('click', ()=>{
+  // กรองเฉพาะแถวที่มีข้อมูลในช่อง note
+  filteredRows = cachedRows.filter(r => r.note && r.note.trim() !== '');
+  renderTable();
+  $('adminSearch').value = '[หมายเหตุ]'; // ใส่ text หลอกๆ ให้รู้ว่ากรองอยู่
+});
 window.openNote = openNote;
 window.setStatus = setStatus;
 window.delDoc = delDoc;
@@ -479,4 +498,3 @@ window.loadCompanies = loadCompanies;
 </script>
 </body>
 </html>
-
