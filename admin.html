@@ -136,11 +136,10 @@
 </div></div>
 
 <script>
-// CONFIG
+// ================= CONFIG =================
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 
-// Init Supabase
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const COMPANIES_TABLE = 'companies';
 const REG_TABLE = 'product_regs';
@@ -152,17 +151,15 @@ let filteredRows = [];
 const selectedIds = new Set();
 let editingNoteId = null;
 
-// Helper function
 function esc(s){ return String(s||'').replace(/[&<>'\"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\' : '&#39;', '"':'&quot;'}[m]) ); }
 function toast(m, ok=true){ $('msg').textContent = m; $('msg').style.color = ok ? '#065f46' : '#b91c1c'; setTimeout(()=>{$('msg').textContent='';}, 3500); }
 
-// 1. Check Login & Load
+// ================= LOAD & LOGIN =================
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // เช็คว่าล็อกอินจริงไหม
   const { data: { session } } = await sb.auth.getSession();
   if(!session){
     alert('กรุณาเข้าสู่ระบบก่อน');
-    window.location.href = 'login.html'; // แก้ชื่อไฟล์ login ตรงนี้ถ้าชื่ออื่น
+    window.location.href = 'login.html'; 
     return;
   }
   $('userEmail').textContent = session.user.email;
@@ -175,20 +172,13 @@ async function loadCompanies(){
   try{
     const { data, error } = await sb.from(COMPANIES_TABLE).select('code,name').order('code');
     if(error) throw error;
-    if(!data || data.length === 0){
-       sel.innerHTML = `<option value="">ไม่พบบริษัท (ตรวจสอบ RLS)</option>`;
-       alert('เชื่อมต่อได้ แต่ไม่พบข้อมูลบริษัท\nหากตารางไม่ว่าง แสดงว่าติดสิทธิ์ (RLS) ใน Supabase');
-    } else {
-       sel.innerHTML = `<option value="">— เลือกบริษัท —</option>` + data.map(c=>`<option value="${esc(c.code)}">${esc(c.code)}${c.name? ' - '+esc(c.name):''}</option>`).join('');
-    }
+    sel.innerHTML = `<option value="">— เลือกบริษัท —</option>` + (data||[]).map(c=>`<option value="${esc(c.code)}">${esc(c.code)}${c.name? ' - '+esc(c.name):''}</option>`).join('');
   }catch(e){ 
     console.error(e); 
     sel.innerHTML = `<option value="">โหลดผิดพลาด</option>`;
-    alert('โหลดบริษัทไม่ได้: ' + e.message);
   }
 }
 
-// ... (ฟังก์ชันอื่นๆ คงเดิม แต่ปรับให้ใช้ตัวแปร global) ...
 $('companySelect').addEventListener('change', e=> { if(e.target.value) loadDocs(e.target.value); });
 
 async function loadDocs(code){
@@ -196,7 +186,6 @@ async function loadDocs(code){
   selectedIds.clear();
   if(!code){ $('tbody').innerHTML = `<tr><td colspan="14" class="small">กรุณาเลือกบริษัท</td></tr>`; $('adminCount').textContent=''; return; }
   $('tbody').innerHTML = `<tr><td colspan="14" class="small">กำลังโหลดข้อมูล...</td></tr>`;
-  
   try{
     const { data, error } = await sb.from(REG_TABLE).select('*').eq('company_code', code).order('id',{ascending:true});
     if(error) throw error;
@@ -205,7 +194,7 @@ async function loadDocs(code){
     renderTable();
   }catch(e){ 
     console.error(e); 
-    $('tbody').innerHTML = `<tr><td colspan="14" class="small" style="color:red">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message)}</td></tr>`; 
+    $('tbody').innerHTML = `<tr><td colspan="14" class="small" style="color:red">โหลดไม่สำเร็จ: ${esc(e.message)}</td></tr>`; 
   }
 }
 
@@ -241,7 +230,6 @@ function renderTable(q=''){
     </tr>`;
   }).join('');
   
-  // Re-attach events
   document.querySelectorAll('.rowchk').forEach(chk=>{
     chk.addEventListener('change', (e)=>{
       const id = e.target.dataset.id;
@@ -251,7 +239,6 @@ function renderTable(q=''){
   });
   updateCount();
 }
-
 function updateCount(){ $('adminCount').textContent = `เลือก ${selectedIds.size} / แสดง ${filteredRows.length} / ทั้งหมด ${cachedRows.length}`; }
 
 $('chkAllVisible').addEventListener('change', (e)=>{
@@ -263,7 +250,172 @@ $('chkAllVisible').addEventListener('change', (e)=>{
   updateCount();
 });
 
-// Inline Edit
+// ================= EXCEL LOGIC (ส่วนที่เพิ่มกลับมา) =================
+$('tplBtn').addEventListener('click', ()=>{
+  const headers = ['trade_name','common_name','importer','manufacturer_source','result_phase1','analysis_result','plan_trial','result_phase3','note'];
+  const example = ['ตัวอย่าง','ชื่อสามัญ','บริษัท นำเข้า','ผู้ผลิต X','ผ่าน','ผลวิเคราะห์สั้น','ทดลอง/แผน','ผลเฟส3','หมายเหตุตัวอย่าง'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'template');
+  XLSX.writeFile(wb, 'template_registrations.xlsx');
+});
+
+$('chooseFileBtn').addEventListener('click', ()=> $('fileInput').click());
+$('fileInput').addEventListener('change', ()=> $('previewBtn').click());
+
+$('previewBtn').addEventListener('click', async ()=>{
+  const f = $('fileInput').files[0]; if(!f) return alert('เลือกไฟล์ก่อน');
+  try{
+    const ab = await f.arrayBuffer();
+    const wb = XLSX.read(ab, { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' }); 
+    const table = document.createElement('table'); table.style.width='100%'; table.border=1;
+    rows.slice(0,10).forEach((r)=>{ const tr = table.insertRow(); r.forEach(c=>{ const td = tr.insertCell(); td.textContent = c; }); });
+    const pa = $('previewArea'); pa.innerHTML=''; pa.appendChild(table);
+    pa.insertAdjacentHTML('afterbegin', `<div class="small">Preview 10 แถวแรก</div>`);
+  }catch(e){ alert('Preview ไม่ได้: '+e.message); }
+});
+
+function pick(obj, keys){ if(!obj) return ''; for(const k of keys){ const sk = k.toLowerCase().trim(); for(const raw in obj){ if(raw.toLowerCase().trim()===sk) return obj[raw]; } } return ''; }
+
+$('impBtn').addEventListener('click', async ()=>{
+  const f = $('fileInput').files[0];
+  if(!f) return alert('เลือกไฟล์ก่อน');
+  if(!currentCompany) return alert('เลือกบริษัทก่อน');
+  if($('replaceMode').checked && !confirm('⚠️ จะลบข้อมูลเก่าทั้งหมดของบริษัทนี้ ยืนยัน?')) return;
+  
+  try{
+    const ab = await f.arrayBuffer();
+    const wb = XLSX.read(ab, { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    
+    const mapped = rows.map(r=>{
+      return {
+        company_code: currentCompany,
+        trade_name: String(pick(r,['trade_name','ชื่อการค้า'])||'').trim(),
+        common_name: String(pick(r,['common_name','ชื่อสามัญ'])||'').trim(),
+        importer: String(pick(r,['importer','ผู้นำเข้า'])||'').trim()||null,
+        manufacturer_source: String(pick(r,['manufacturer_source','แหล่งผลิต','ผู้ผลิต'])||'').trim()||null,
+        result_phase1: String(pick(r,['result_phase1','ผลเฟส1'])||'').trim()||null,
+        analysis_result: String(pick(r,['analysis_result','ผลวิเคราะห์'])||'').trim()||null,
+        plan_trial: String(pick(r,['plan_trial','แผน/ผลทดลอง'])||'').trim()||null,
+        result_phase3: String(pick(r,['result_phase3','ผลเฟส3'])||'').trim()||null,
+        note: String(pick(r,['note','หมายเหตุ'])||'').trim()||null
+      };
+    }).filter(x=> x.trade_name && x.common_name);
+
+    if(mapped.length===0) return alert('ไม่พบข้อมูล (ต้องมี ชื่อการค้า และ ชื่อสามัญ)');
+    
+    // Replace Logic
+    if($('replaceMode').checked){ 
+       const del = await sb.from(REG_TABLE).delete().eq('company_code', currentCompany); 
+       if(del.error) throw del.error;
+    }
+    
+    // Batch Insert (500 rows/batch)
+    let count=0; 
+    for(let i=0; i<mapped.length; i+=500){ 
+       const chunk = mapped.slice(i,i+500); 
+       const { error } = await sb.from(REG_TABLE).insert(chunk); 
+       if(error) throw error; 
+       count += chunk.length; 
+    }
+    
+    toast(`✅ นำเข้าสำเร็จ ${count} รายการ`);
+    loadDocs(currentCompany);
+    $('fileInput').value = '';
+    $('previewArea').innerHTML = '';
+  }catch(err){ alert('Import Error: '+err.message); }
+});
+
+$('expBtn').addEventListener('click', ()=>{
+  if(!currentCompany || !cachedRows.length) return alert('ไม่มีข้อมูลให้ส่งออก');
+  const aoa = [['บริษัท','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ','สถานะ']];
+  cachedRows.forEach(r=> aoa.push([r.company_code, r.trade_name, r.common_name, r.importer, r.manufacturer_source, r.result_phase1, r.analysis_result, r.plan_trial, r.result_phase3, r.note, r.renewed_status]));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Export');
+  XLSX.writeFile(wb, `export_${currentCompany}.xlsx`);
+});
+
+// ================= CUSTOMER CODE & SEARCH =================
+$('setCodeBtn').addEventListener('click', async ()=>{
+  if(!currentCompany) return alert('เลือกบริษัท');
+  const code = $('cust_code').value.trim(); if(!code) return alert('กรอกรหัส');
+  const { error } = await sb.from(COMPANIES_TABLE).upsert({ code: currentCompany, plain_code: code }, { onConflict: 'code' });
+  if(!error){ toast('บันทึกรหัสลูกค้าแล้ว'); loadCompanies(); } else alert(error.message);
+});
+$('copyCodeBtn').addEventListener('click', async ()=>{ 
+  const code = $('cust_code').value.trim(); 
+  if(code) { await navigator.clipboard.writeText(code); alert('คัดลอกแล้ว'); } 
+  else alert('ไม่มีรหัส'); 
+});
+
+$('adminSearch').addEventListener('input', ()=>{
+  const q = $('adminSearch').value.trim().toLowerCase();
+  if(!q) { filteredRows = [...cachedRows]; }
+  else {
+     const toks = q.split(/\s+/).filter(Boolean);
+     filteredRows = cachedRows.filter(r=>{
+        const hay = [r.trade_name,r.common_name,r.importer,r.manufacturer_source,r.note].join(' ').toLowerCase();
+        return toks.every(t => hay.includes(t));
+     });
+  }
+  renderTable();
+});
+$('adminClearBtn').addEventListener('click', ()=>{ $('adminSearch').value=''; filteredRows=[...cachedRows]; renderTable(); });
+
+$('btnSelectAllFiltered').addEventListener('click', ()=> filteredRows.forEach(r=> selectedIds.add(r.id)) || updateCount() || renderTable());
+$('btnClearSel').addEventListener('click', ()=> selectedIds.clear() || updateCount() || renderTable());
+$('btnDeleteSel').addEventListener('click', async ()=>{
+  if(!selectedIds.size) return alert('เลือกก่อน');
+  if(confirm(`ลบ ${selectedIds.size} รายการ?`)){
+     const { error } = await sb.from(REG_TABLE).delete().in('id', Array.from(selectedIds));
+     if(!error){ selectedIds.clear(); loadDocs(currentCompany); } else alert(error.message);
+  }
+});
+
+// ================= OTHER ACTIONS =================
+$('addBtn').addEventListener('click', async()=>{
+  if(!currentCompany) return alert('เลือกบริษัท');
+  const payload = {
+    company_code: currentCompany,
+    trade_name: $('trade_name').value.trim(),
+    common_name: $('common_name').value.trim(),
+    importer: $('importer').value.trim()||null,
+    manufacturer_source: $('manufacturer_source').value.trim()||null,
+    result_phase1: $('result_phase1').value.trim()||null,
+    analysis_result: $('analysis_result').value.trim()||null,
+    plan_trial: $('plan_trial').value.trim()||null,
+    result_phase3: $('result_phase3').value.trim()||null,
+    note: $('note').value.trim()||null
+  };
+  if(!payload.trade_name) return alert('ใส่ชื่อการค้า');
+  const {error} = await sb.from(REG_TABLE).insert(payload);
+  if(!error){ 
+     document.querySelectorAll('input').forEach(i=>{ if(i.id!=='adminSearch' && i.id!=='cust_code') i.value=''; });
+     loadDocs(currentCompany); 
+  } else alert(error.message);
+});
+
+$('btnNotePage').addEventListener('click', ()=>{
+  filteredRows = cachedRows.filter(r => r.note && r.note.trim() !== '');
+  renderTable();
+  $('adminSearch').value = '[หมายเหตุ]';
+});
+
+// Inline & Modal actions
+window.openNote = (id)=>{ editingNoteId=id; const r=cachedRows.find(x=>x.id==id); $('noteText').value=r?.note||''; $('noteModal').style.display='flex'; };
+$('closeNote').addEventListener('click', ()=>$('noteModal').style.display='none');
+$('saveNote').addEventListener('click', async()=>{
+  if(!editingNoteId) return;
+  const {error} = await sb.from(REG_TABLE).update({note:$('noteText').value}).eq('id',editingNoteId);
+  if(!error){ $('noteModal').style.display='none'; loadDocs(currentCompany); } else alert(error.message);
+});
+
+window.setStatus = async (id, st)=>{ const {error}=await sb.from(REG_TABLE).update({renewed_status:st}).eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); };
+window.delDoc = async (id)=>{ if(confirm('ลบ?')){ const {error}=await sb.from(REG_TABLE).delete().eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); } };
+
 $('tbody').addEventListener('dblclick', (e)=>{
   const td = e.target.closest('td.editable');
   if(!td || td.classList.contains('editing')) return;
@@ -289,41 +441,8 @@ $('tbody').addEventListener('dblclick', (e)=>{
   input.addEventListener('blur', finish);
 });
 
-// Other Actions
-window.openNote = (id)=>{ editingNoteId=id; const r=cachedRows.find(x=>x.id==id); $('noteText').value=r?.note||''; $('noteModal').style.display='flex'; };
-$('closeNote').addEventListener('click', ()=>$('noteModal').style.display='none');
-$('saveNote').addEventListener('click', async()=>{
-  if(!editingNoteId) return;
-  const {error} = await sb.from(REG_TABLE).update({note:$('noteText').value}).eq('id',editingNoteId);
-  if(!error){ $('noteModal').style.display='none'; loadDocs(currentCompany); } else alert(error.message);
-});
+$('signOutBtn').addEventListener('click', async()=>{ await sb.auth.signOut(); window.location.href='login.html'; });
 
-window.setStatus = async (id, st)=>{ const {error}=await sb.from(REG_TABLE).update({renewed_status:st}).eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); };
-window.delDoc = async (id)=>{ if(confirm('ลบ?')){ const {error}=await sb.from(REG_TABLE).delete().eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); } };
-
-$('signOutBtn').addEventListener('click', async()=>{ await sb.auth.signOut(); window.location.href='login.html'; }); // เช็คชื่อไฟล์ login ด้วย
-
-$('addBtn').addEventListener('click', async()=>{
-  if(!currentCompany) return alert('เลือกบริษัท');
-  const payload = {
-    company_code: currentCompany,
-    trade_name: $('trade_name').value.trim(),
-    common_name: $('common_name').value.trim(),
-    importer: $('importer').value.trim()||null,
-    manufacturer_source: $('manufacturer_source').value.trim()||null,
-    result_phase1: $('result_phase1').value.trim()||null,
-    analysis_result: $('analysis_result').value.trim()||null,
-    plan_trial: $('plan_trial').value.trim()||null,
-    result_phase3: $('result_phase3').value.trim()||null,
-    note: $('note').value.trim()||null
-  };
-  if(!payload.trade_name) return alert('ใส่ชื่อการค้า');
-  const {error} = await sb.from(REG_TABLE).insert(payload);
-  if(!error){ 
-     document.querySelectorAll('#trade_name,#common_name,#importer,#manufacturer_source,#result_phase1,#analysis_result,#plan_trial,#result_phase3,#note').forEach(i=>i.value='');
-     loadDocs(currentCompany); 
-  } else alert(error.message);
-});
 </script>
 </body>
 </html>
