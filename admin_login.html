@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin Login — ระบบหลังบ้าน</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#f0f7fb;--card:#ffffff;--accent:#0ea5a5;--accent2:#2563eb;--mut:#64748b}
@@ -17,7 +18,6 @@
   .brand h1{margin:0;font-size:20px}
   .brand p{margin:0;color:var(--mut);font-size:14px}
   .illustration{width:100%;height:160px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="240"><rect width="100%" height="100%" fill="%23f4fbff"/><circle cx="520" cy="40" r="70" fill="%23c8f7ff"/><circle cx="480" cy="200" r="50" fill="%23e8f9ff"/></svg>') center/cover no-repeat;border-radius:10px}
-
   .card{background:var(--card);padding:28px;border-radius:12px;box-shadow:0 10px 30px rgba(12,46,71,0.04);border:1px solid #eef6fb}
   .h{font-size:18px;margin:0 0 10px 0}
   form{display:flex;flex-direction:column;gap:12px}
@@ -33,11 +33,7 @@
   .sep{height:1px;background:#f1f7fb;margin:8px 0;border-radius:4px}
   .note{font-size:13px;color:#0b6b6b}
   .error{color:#b91c1c;font-size:13px}
-
-  @media (max-width:920px){
-    .grid{grid-template-columns:1fr;}
-    .illustration{height:120px}
-  }
+  @media (max-width:920px){ .grid{grid-template-columns:1fr;} .illustration{height:120px} }
 </style>
 </head>
 <body>
@@ -56,9 +52,9 @@
       <div class="note">หากต้องการให้ลูกค้าเข้าดูอย่างเดียว ให้ใช้ไฟล์ <strong>customer.html</strong> พร้อมรหัสลูกค้าที่คุณแจก</div>
     </div>
 
-    <div class="card" role="main" aria-labelledby="login-title">
-      <h2 id="login-title" class="h">เข้าสู่ระบบสำหรับผู้ดูแล</h2>
-      <form id="loginForm" autocomplete="on">
+    <div class="card" role="main">
+      <h2 class="h">เข้าสู่ระบบสำหรับผู้ดูแล</h2>
+      <form id="loginForm">
         <div>
           <label for="email">อีเมล (ผู้ดูแล)</label>
           <input id="email" name="email" type="text" placeholder="admin@example.com" required>
@@ -67,60 +63,89 @@
           <label for="password">รหัสผ่าน</label>
           <input id="password" name="password" type="password" placeholder="••••••••" required>
         </div>
-
         <div class="row" style="align-items:center;justify-content:space-between">
           <div style="display:flex;gap:8px;align-items:center"><input id="remember" type="checkbox"><label for="remember" style="margin:0">จำสถานะ</label></div>
-          <a href="#" class="forgot">ลืมรหัสผ่าน?</a>
         </div>
-
         <div style="display:flex;gap:10px;margin-top:6px">
           <button type="submit" class="btn btn-primary" id="signInBtn">เข้าสู่ระบบ</button>
-          <button type="button" id="useLegacy" class="btn btn-ghost">ใช้ Legacy Key</button>
         </div>
-
         <div class="sep" aria-hidden="true"></div>
-        <div class="muted">ตัวอย่าง: ระบบนี้ยังไม่เชื่อมต่อกับ Supabase — วางโค้ดเชื่อมต่อในส่วนสคริปต์ด้านล่าง</div>
         <div id="err" class="error" role="alert" style="display:none"></div>
       </form>
     </div>
   </div>
 </div>
 
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-// Supabase config (ใส่ค่าที่คุณให้ไว้)
+<script>
+// --- แก้ไข: ใช้แบบไม่ต้อง import (ทำงานชัวร์กว่า) ---
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
-const SUPABASE_ANON_KEY = 'vyfjqpwmvjborjrrtpne';
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
+
+// เรียกใช้ผ่านตัวแปร global 'supabase'
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const form = document.getElementById('loginForm');
 const errEl = document.getElementById('err');
-form.addEventListener('submit', async (e)=>{
+
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  errEl.style.display='none';
+  errEl.style.display = 'none';
+  errEl.innerText = '';
+
   const email = document.getElementById('email').value.trim();
   const pw = document.getElementById('password').value;
   const remember = document.getElementById('remember').checked;
-  if(!email || !pw){ showError('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
-  try{
-    // เรียก Supabase เพื่อ sign in 
-    const res = await sb.auth.signInWithPassword({ email, password: pw });
-    if(res.error) throw res.error;
-    // หากต้องการให้จำสถานะ เก็บ access token แบบง่าย (เลือกใช้ตามความเหมาะสม)
-    if(remember && res.data?.session) localStorage.setItem('sb_session', JSON.stringify(res.data.session));
-    // เข้าสู่หน้าจัดการ ถ้าต้องการให้เป็น admin.html
+
+  if (!email || !pw) {
+    showError('กรุณากรอกข้อมูลให้ครบ');
+    return;
+  }
+
+  // 1. เปลี่ยนปุ่มให้รู้ว่ากำลังโหลด
+  const btn = document.getElementById('signInBtn');
+  const originalText = btn.innerText;
+  btn.innerText = 'กำลังตรวจสอบ...';
+  btn.disabled = true;
+
+  try {
+    // 2. ส่งข้อมูลไปล็อกอิน
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: email,
+      password: pw
+    });
+
+    if (error) throw error;
+
+    // 3. ถ้าผ่าน
+    if (remember && data.session) {
+      localStorage.setItem('sb_session', JSON.stringify(data.session));
+    }
+
+    alert('✅ ล็อกอินสำเร็จ! กำลังเข้าสู่ระบบ...');
+    
+    // --- จุดสำคัญ: ต้องมีไฟล์ admin.html อยู่จริง ---
     window.location.href = 'admin.html';
-  }catch(err){
-    console.error('Login error', err);
-    showError(err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+
+  } catch (err) {
+    console.error('Login Error:', err);
+    showError('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'อีเมลหรือรหัสผ่านผิด'));
+  } finally {
+    // คืนค่าปุ่มเดิม
+    btn.innerText = originalText;
+    btn.disabled = false;
   }
 });
-function showError(msg){ errEl.textContent = msg; errEl.style.display = 'block'; }
 
-// Legacy key button (ตัวอย่าง) — หากต้องการให้ใช้ legacy key จะนำไปใส่ใน sessionStorage หรือเรียก API
-document.getElementById('useLegacy').addEventListener('click', ()=>{
-  const key = prompt('วาง Legacy Admin Key:');
-  if(key){ sessionStorage.setItem('legacy_admin_key', key); alert('Legacy key ถูกตั้งแล้ว — รีเฟรชหน้าเพื่อใช้งาน'); }
+function showError(msg) {
+  errEl.innerText = msg;
+  errEl.style.display = 'block';
+}
+
+// เช็คว่าโหลด Script ผ่านไหม
+window.addEventListener('load', () => {
+  if (typeof supabase === 'undefined') {
+    alert('❌ ไม่สามารถโหลด Supabase ได้ (อินเทอร์เน็ตอาจมีปัญหา หรือถูกบล็อก)');
+  }
 });
 </script>
 </body>
