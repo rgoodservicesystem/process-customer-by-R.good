@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Portal — เลือกโหมดการใช้งาน</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#f0f7fb;
+    --card:#ffffff;
+    --accent:#0ea5a5;
+    --accent2:#2563eb;
+    --border:#e6eef5;
+    --mut:#64748b;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:"Prompt",sans-serif;
+    background:linear-gradient(180deg,var(--bg),#ffffff);
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#0f172a;
+  }
+  .wrap{
+    width:100%;
+    max-width:880px;
+    padding:20px;
+  }
+  h1{
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    padding:28px;
+    border:1px solid var(--border);
+    box-shadow:0 12px 28px rgba(12,46,71,0.06);
+    transition:.25s;
+    cursor:pointer;
+  }
+  .card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 16px 34px rgba(12,46,71,0.09);
+  }
+  .title{
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:12px;
+  }
+  .muted{
+    color:var(--mut);
+    font-size:14px;
+  }
+  .btn{
+    margin-top:18px;
+    display:inline-block;
+    padding:12px 20px;
+    font-weight:700;
+    border-radius:12px;
+    text-decoration:none;
+    color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>เลือกโหมดการใช้งาน</h1>
+
+  <div class="grid">
+
+    <!-- Admin Card -->
+    <div class="card" onclick="location.href='admin_login.html'">
+      <div class="title">🔐 Admin Portal</div>
+      <div class="muted">
+        สำหรับผู้ดูแลระบบ — เพิ่ม/แก้ไขข้อมูล, อัปโหลดไฟล์ Excel, จัดการบริษัท
+      </div>
+      <a href="admin_login.html" class="btn">เข้าสู่ระบบผู้ดูแล</a>
+    </div>
+
+    <!-- Customer Card -->
+    <div class="card" onclick="location.href='customer.html'">
+      <div class="title">👤 Customer Portal</div>
+      <div class="muted">
+        สำหรับลูกค้า ดูข้อมูลที่คุณให้รหัสเข้าถึงได้เท่านั้น
+      </div>
+      <a href="customer.html" class="btn">เข้าสู่หน้าลูกค้า</a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
