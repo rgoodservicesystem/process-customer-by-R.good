@@ -24,7 +24,7 @@
   button{padding:12px 20px;background:var(--text);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;transition:0.2s}
   
   .filter-bar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-  .filter-bar select { min-width: 220px; border-color:var(--accent); color:var(--accent); font-weight:600; }
+  .filter-bar select { min-width: 240px; border-color:var(--accent); color:var(--accent); font-weight:600; }
 
   .list-card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.03);}
   table{width:100%;border-collapse:collapse; min-width: 600px;}
@@ -39,7 +39,6 @@
   
   .badge-step { font-size:12px; font-weight:700; padding:4px 8px; border-radius:6px; background:#f1f5f9; color:#64748b; display:inline-block; margin-bottom:4px; }
   .badge-pct { float:right; color:#f59e0b; font-weight:700; font-size:13px; }
-
 </style>
 </head>
 <body>
@@ -69,8 +68,9 @@
         <option value="all">🔥 แสดงทั้งหมด (ที่กำลังทำอยู่)</option>
         <option value="step1">1. ขั้นรับเรื่อง / ยื่นคำขอ (5-15%)</option>
         <option value="step2">2. ผ่านเฟส 1 แล้ว (35%)</option>
-        <option value="step3">3. ผ่านวิเคราะห์ / ทดลอง (60%)</option>
-        <option value="step4">4. เข้าสู่เฟส 3 (85%)</option>
+        <option value="step3">3. ผ่านวิเคราะห์ (60%)</option>
+        <option value="step4">4. ผ่านผลทดลอง (75%)</option>
+        <option value="step5">5. เข้าสู่เฟส 3 (90%)</option>
       </select>
       <div style="flex:1; text-align:right; font-size:13px; color:#64748b">
         พบ <span id="countFiltered" style="font-weight:700;color:#0f172a">0</span> รายการ
@@ -110,9 +110,8 @@ const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let globalRows = []; // เก็บข้อมูลไว้กรอง
+let globalRows = [];
 
-// Init
 window.addEventListener('DOMContentLoaded', ()=>{
   const savedCode = localStorage.getItem('customer_access_code') || '';
   if(savedCode){ $('access_code').value = savedCode; loadDashboard(savedCode); }
@@ -120,7 +119,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 $('btnLoad').addEventListener('click', ()=> loadDashboard($('access_code').value));
 $('access_code').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadDashboard($('access_code').value); });
-$('stageFilter').addEventListener('change', ()=> renderTable()); // เปลี่ยน Filter แล้ววาดตารางใหม่
+$('stageFilter').addEventListener('change', ()=> renderTable());
 
 async function loadDashboard(code){
   code = code.trim(); if(!code) return alert('กรุณากรอกรหัสลูกค้า');
@@ -132,50 +131,56 @@ async function loadDashboard(code){
     if(error) throw error;
     if(!data || data.length===0) return alert('ไม่พบข้อมูลรหัสนี้');
     
-    globalRows = data; // เก็บข้อมูลดิบไว้
-    renderTable(); // วาดตาราง
-    renderHistory(); // วาดส่วนประวัติข้างล่าง
+    globalRows = data; 
+    renderTable(); 
+    renderHistory();
     $('contentArea').style.display = 'block';
 
   }catch(e){ console.error(e); alert('เกิดข้อผิดพลาด: '+e.message); }
   finally{ $('btnLoad').textContent = 'สรุปข้อมูล'; }
 }
 
+// === สูตรคำนวณ % ปรับปรุงใหม่ (มีสเต็ป 75%) ===
 function calculatePercent(row){
-  // สูตรคำนวณ %
   if(row.renewed_status === 'ดำเนินการแล้ว') return 100;
   
-  let score = 5; // เริ่มต้น
-  if(hasVal(row.importer) || hasVal(row.manufacturer_source)) score = 15;
-  if(hasVal(row.result_phase1)) score = 35;
-  if(hasVal(row.analysis_result) || hasVal(row.plan_trial)) score = 60;
-  if(hasVal(row.result_phase3)) score = 85;
+  let score = 5; 
+  if(hasVal(row.importer) || hasVal(row.manufacturer_source)) score = Math.max(score, 15);
+  
+  if(hasVal(row.result_phase1)) score = Math.max(score, 35);
+  
+  if(hasVal(row.analysis_result)) score = Math.max(score, 60); // ผลวิเคราะห์ = 60
+  
+  // *** เพิ่มสเต็ปนี้: ถ้ามีแผน/ผลทดลอง ให้เป็น 75% ***
+  if(hasVal(row.plan_trial)) score = Math.max(score, 75);
+  
+  if(hasVal(row.result_phase3)) score = Math.max(score, 90);
+
   return score;
 }
 
 function hasVal(val){ return val && String(val).trim().length > 0 && String(val).trim() !== '-'; }
 function safeText(txt){ return (txt && String(txt).trim()!=='') ? String(txt).trim() : '<span style="color:#b91c1c;font-weight:400">(ไม่ระบุชื่อ)</span>'; }
 
-// ฟังก์ชันกรองและวาดตาราง
 function renderTable(){
   const filter = $('stageFilter').value;
   const tbody = $('mainTbody');
   
-  // 1. กรองเฉพาะที่ "อยู่ระหว่างดำเนินการ" และ สถานะอื่นๆ ที่ไม่ใช่ "เสร็จแล้ว"
-  // (ตามโจทย์: ไม่เอา ดำเนินการแล้ว / เปลี่ยนแหล่งผลิต มาโชว์ในนี้)
+  // กรอง: ไม่เอา ดำเนินการแล้ว / เปลี่ยนแหล่งผลิต
   let activeRows = globalRows.filter(r => {
       const st = (r.renewed_status||'').trim();
       return st !== 'ดำเนินการแล้ว' && st !== 'เปลี่ยนแหล่งผลิตใหม่';
   });
 
-  // 2. กรองตาม Level (Filter) ที่เลือก
+  // กรองตาม Level
   const filtered = activeRows.filter(r => {
     const pct = calculatePercent(r);
     if(filter === 'all') return true;
-    if(filter === 'step1') return pct >= 5 && pct < 35;   // ขั้นต้น
-    if(filter === 'step2') return pct >= 35 && pct < 60;  // ผ่านเฟส 1
-    if(filter === 'step3') return pct >= 60 && pct < 85;  // วิเคราะห์/ทดลอง
-    if(filter === 'step4') return pct >= 85;              // เฟส 3
+    if(filter === 'step1') return pct >= 5 && pct < 35;
+    if(filter === 'step2') return pct >= 35 && pct < 60;
+    if(filter === 'step3') return pct >= 60 && pct < 75; // 60-74 = ผลวิเคราะห์
+    if(filter === 'step4') return pct >= 75 && pct < 90; // 75-89 = ผลทดลอง
+    if(filter === 'step5') return pct >= 90;             // 90+ = เฟส 3
     return false;
   });
 
@@ -189,8 +194,10 @@ function renderTable(){
   tbody.innerHTML = filtered.map(r => {
     const pct = calculatePercent(r);
     let stepName = 'รับเรื่อง / ยื่นคำขอ';
-    if(pct >= 85) stepName = 'เข้าสู่เฟส 3 (รอใบสำคัญ)';
-    else if(pct >= 60) stepName = 'ผ่านวิเคราะห์ / ทดลอง';
+    
+    if(pct >= 90) stepName = 'เข้าสู่เฟส 3 (รอใบสำคัญ)';
+    else if(pct >= 75) stepName = 'ผ่านผลทดลองแล้ว (75%)'; // เพิ่มชื่อสเต็ป
+    else if(pct >= 60) stepName = 'ผ่านผลวิเคราะห์แล้ว';
     else if(pct >= 35) stepName = 'ผ่านเฟส 1 เรียบร้อย';
 
     return `
@@ -215,7 +222,6 @@ function renderTable(){
   }).join('');
 }
 
-// ฟังก์ชันวาดประวัติข้างล่าง (พวกที่เสร็จแล้ว)
 function renderHistory(){
   const historyRows = globalRows.filter(r => {
       const st = (r.renewed_status||'').trim();
@@ -227,7 +233,6 @@ function renderHistory(){
     return;
   }
 
-  // แสดงเป็นรายการง่ายๆ
   $('historyArea').innerHTML = historyRows.map(r => {
       const isDone = (r.renewed_status||'').trim() === 'ดำเนินการแล้ว';
       const icon = isDone ? '✅' : 'ℹ️';
@@ -236,7 +241,6 @@ function renderHistory(){
       </div>`;
   }).join('');
 }
-
 </script>
 </body>
 </html>
