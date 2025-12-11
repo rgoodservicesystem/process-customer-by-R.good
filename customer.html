@@ -10,20 +10,26 @@
   :root{--bg:#f6fbff;--card:#fff;--mut:#64748b;--border:#e6eef5;--accent:#0ea5a5;--accent2:#60a5fa}
   *{box-sizing:border-box}
   body{font-family:"Prompt",sans-serif;background:var(--bg);margin:0;color:#0f172a}
-  header{padding:16px;background:linear-gradient(180deg,#f0fbff,#eaf7ff);border-bottom:1px solid var(--border)}
+  
+  header{padding:12px 20px;background:linear-gradient(180deg,#f0fbff,#eaf7ff);border-bottom:1px solid var(--border)}
+  
   .wrap{max-width:1200px;margin:20px auto;padding:0 16px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 8px 28px rgba(10,30,60,.04)}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   input,select,button,textarea{padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
-  .btn{cursor:pointer}
+  .btn{cursor:pointer; transition:0.2s}
+  .btn:hover{opacity:0.9}
   .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:700}
   .btn-ghost{background:#fff;border:1px solid #d6eef3;color:#0b6b6b}
+  
+  .btn-link{text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:#0f172a; padding:8px 16px; border-radius:8px; background:#fff; border:1px solid #cbd5e1;}
+  .btn-link:hover{background:#f1f5f9; color:#0ea5a5; border-color:#0ea5a5;}
+
   .small{font-size:13px;color:var(--mut)}
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
   th{background:linear-gradient(180deg,#f7fbff,#f2f8ff);position:sticky;top:0;z-index:1; white-space:nowrap;}
   
-  /* ให้ตารางเลื่อนซ้ายขวาได้ในมือถือ โดยไม่ซ่อนคอลัมน์สำคัญ */
   .table-responsive { overflow-x: auto; }
   
   .search{flex:1;min-width:220px}
@@ -35,11 +41,12 @@
 </style>
 </head>
 <body>
+
 <header>
-  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px">
-    <div style="font-weight:700;font-size:18px">Customer Portal</div>
-    <div style="flex:1"></div>
-    <div class="small muted">ระบบตรวจสอบสถานะทะเบียน</div>
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="font-weight:700;font-size:18px;margin-right:auto">Customer Portal</div>
+    <a href="customer_dashboard.html" class="btn-link">📊 ดูสรุปภาพรวม</a>
+    <div class="small muted" style="display:none; @media(min-width:600px){display:block}">ระบบตรวจสอบสถานะทะเบียน</div>
   </div>
 </header>
 
@@ -49,9 +56,7 @@
       <label style="font-weight:600">รหัสลูกค้าของคุณ:</label>
       <input id="access_code" placeholder="เช่น RG-XXXX" style="min-width:200px">
       <button id="useCode" class="btn btn-primary">ค้นหาข้อมูล</button>
-
       <div style="width:1px;height:24px;background:#e6eef5;margin:0 8px"></div>
-      
       <input id="q" class="search" placeholder="กรอง: ชื่อการค้า / ชื่อสามัญ / ผู้นำเข้า..." />
       <button id="refreshBtn" class="btn btn-ghost">รีเฟรช</button>
       <button id="exportBtn" class="btn btn-ghost">Export CSV</button>
@@ -67,7 +72,8 @@
             <th style="width:40px">#</th>
             <th>ชื่อการค้า</th>
             <th>ชื่อสามัญ</th>
-            <th>ผู้นำเข้า</th> <th>แหล่งผลิต</th>
+            <th>ผู้นำเข้า</th>
+            <th>แหล่งผลิต</th>
             <th>ผลเฟส1</th>
             <th>ผลวิเคราะห์</th>
             <th>แผน/ผลทดลอง</th>
@@ -84,42 +90,64 @@
 </div>
 
 <script>
-// ================= CONFIG =================
+// CONFIG
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
 let currentRows = [];
 
-// ================= LOGIC =================
 function init(){
   const savedCode = localStorage.getItem('customer_access_code') || '';
-  if(savedCode){ 
-    $('access_code').value = savedCode; 
-    useAccessCode(savedCode); 
-  }
+  if(savedCode){ $('access_code').value = savedCode; loadDashboard(savedCode); }
 }
 
-async function useAccessCode(code){
-  code = code.trim();
-  if(!code) return alert('กรุณากรอกรหัสลูกค้า');
-  localStorage.setItem('customer_access_code', code);
+async function useAccessCode(inputCode){
+  inputCode = inputCode.trim();
+  if(!inputCode) return alert('กรุณากรอกรหัสลูกค้า');
   
-  $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังโหลดข้อมูล...</td></tr>`;
+  // บันทึกรหัสที่ลูกค้าพิมพ์ไว้ก่อน
+  localStorage.setItem('customer_access_code', inputCode);
+  $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังค้นหาบริษัท...</td></tr>`;
 
   try{
-    // ดึงข้อมูล
+    // --- แก้ไข: ขั้นตอนที่ 1 ค้นหา "รหัสบริษัทตัวจริง" ก่อน ---
+    // ค้นหาว่า inputCode ตรงกับ 'code' (รหัสระบบ) หรือ 'plain_code' (รหัสลูกค้าตั้งเอง) หรือไม่
+    const { data: companies, error: compError } = await sb
+      .from('companies')
+      .select('code, name')
+      .or(`code.eq.${inputCode},plain_code.eq.${inputCode}`)
+      .limit(1);
+
+    if(compError) throw compError;
+
+    // ถ้าไม่เจอบริษัทเลย ให้ลองค้นหาแบบเดิม (เผื่อฟลุ๊ค) หรือแจ้งเตือน
+    let targetCode = inputCode;
+    let companyName = '';
+
+    if(companies && companies.length > 0){
+        targetCode = companies[0].code; // ได้รหัสตัวจริงมาแล้ว (FK)
+        companyName = companies[0].name || '';
+        console.log(`Found Company: ${companyName} (${targetCode})`);
+    } else {
+        // ถ้าไม่เจอในตาราง companies อาจจะแปลว่ารหัสผิด หรือยังไม่ได้สร้างบริษัท
+        // แต่เราจะลองค้นหาใน product_regs ตรงๆ ดู เผื่อเป็นข้อมูลเก่า
+        console.warn('Company not found, trying direct search...');
+    }
+
+    // --- ขั้นตอนที่ 2 ดึงข้อมูลสินค้า โดยใช้รหัสตัวจริง (targetCode) ---
+    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังโหลดข้อมูลสินค้า...</td></tr>`;
+    
     const { data, error } = await sb
       .from('product_regs')
       .select('trade_name,common_name,importer,manufacturer_source,result_phase1,analysis_result,plan_trial,result_phase3,note,renewed_status')
-      .eq('company_code', code)
+      .eq('company_code', targetCode)
       .order('id');
 
     if(error) throw error;
     
     if(!data || data.length === 0){
-      $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:#b91c1c">ไม่พบข้อมูลของรหัส "${code}" หรือรหัสไม่ถูกต้อง</td></tr>`;
+      $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:#b91c1c">ไม่พบข้อมูลสินค้าสำหรับรหัส "${inputCode}"</td></tr>`;
       $('table-info').textContent = 'พบ 0 รายการ';
       currentRows = [];
       return;
@@ -127,10 +155,13 @@ async function useAccessCode(code){
 
     currentRows = data;
     renderTable(currentRows);
+    
+    // แสดงชื่อบริษัทเล็กๆ ถ้าเจอ
+    if(companyName) $('table-info').innerHTML = `<strong>${escapeHtml(companyName)}</strong> — พบ ${data.length} รายการ`;
 
   }catch(e){
     console.error(e);
-    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:red">เกิดข้อผิดพลาดในการโหลด: ${e.message}</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:red">เกิดข้อผิดพลาด: ${e.message}</td></tr>`;
   }
 }
 
@@ -149,34 +180,36 @@ function renderTable(rows){
   }
 
   tb.innerHTML = filtered.map((r,i)=> {
-    // จัดการสีสถานะ
     let badge = '-';
     if (r.renewed_status === 'ดำเนินการแล้ว') badge = '<span class="status-badge b-done">ดำเนินการแล้ว</span>';
     else if (r.renewed_status === 'อยู่ระหว่างดำเนินการ') badge = '<span class="status-badge b-process">อยู่ระหว่างดำเนินการ</span>';
     else if (r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่') badge = '<span class="status-badge b-change">เปลี่ยนแหล่งผลิตใหม่</span>';
-    else if (r.renewed_status) badge = `<span class="small">${esc(r.renewed_status)}</span>`;
+    else if (r.renewed_status) badge = `<span class="small">${escapeHtml(r.renewed_status)}</span>`;
 
     return `
     <tr>
       <td>${i+1}</td>
-      <td style="font-weight:600;color:#0ea5a5">${esc(r.trade_name)}</td>
-      <td>${esc(r.common_name)}</td>
-      <td style="color:#2563eb">${esc(r.importer)}</td> <td>${esc(r.manufacturer_source)}</td>
-      <td>${esc(r.result_phase1)}</td>
-      <td>${esc(r.analysis_result)}</td>
-      <td>${esc(r.plan_trial)}</td>
-      <td>${esc(r.result_phase3)}</td>
-      <td>${esc(r.note)}</td>
+      <td style="font-weight:600;color:#0ea5a5">${escapeHtml(r.trade_name)}</td>
+      <td>${escapeHtml(r.common_name)}</td>
+      <td style="color:#2563eb">${escapeHtml(r.importer)}</td>
+      <td>${escapeHtml(r.manufacturer_source)}</td>
+      <td>${escapeHtml(r.result_phase1)}</td>
+      <td>${escapeHtml(r.analysis_result)}</td>
+      <td>${escapeHtml(r.plan_trial)}</td>
+      <td>${escapeHtml(r.result_phase3)}</td>
+      <td>${escapeHtml(r.note)}</td>
       <td>${badge}</td>
     </tr>`;
   }).join('');
   
-  $('table-info').textContent = `แสดง ${filtered.length} จากทั้งหมด ${rows.length} รายการ`;
+  if(!$('table-info').innerHTML.includes('<strong>')) {
+     $('table-info').textContent = `แสดง ${filtered.length} จากทั้งหมด ${rows.length} รายการ`;
+  }
 }
 
-function esc(s){ return String(s||'').replace(/[&<>'\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]||m)); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>'\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]||m)); }
 
-// ================= EVENTS =================
+// EVENTS
 $('useCode').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
 $('access_code').addEventListener('keydown', (e)=>{ if(e.key==='Enter') useAccessCode($('access_code').value); });
 $('refreshBtn').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
@@ -187,9 +220,7 @@ $('exportBtn').addEventListener('click', ()=>{
   const rows = Array.from(document.querySelectorAll('#tbody tr')).map(tr => 
     Array.from(tr.children).map(td => td.textContent.replace(/\n/g,' ').trim())
   );
-  // หัวตาราง CSV
   const header = ['#','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ','สถานะ'];
-  
   const csvContent = [header, ...rows].map(e => e.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");
@@ -198,7 +229,6 @@ $('exportBtn').addEventListener('click', ()=>{
   link.click();
 });
 
-// Start
 init();
 </script>
 </body>
