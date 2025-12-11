@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Customer — ดูรายการ (View only)</title>
+<title>Customer Portal — ตรวจสอบสถานะ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#f6fbff;--card:#fff;--mut:#64748b;--border:#e6eef5;--accent:#0ea5a5;--accent2:#60a5fa}
   *{box-sizing:border-box}
   body{font-family:"Prompt",sans-serif;background:var(--bg);margin:0;color:#0f172a}
   header{padding:16px;background:linear-gradient(180deg,#f0fbff,#eaf7ff);border-bottom:1px solid var(--border)}
-  .wrap{max-width:1100px;margin:20px auto;padding:0 16px}
+  .wrap{max-width:1200px;margin:20px auto;padding:0 16px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 8px 28px rgba(10,30,60,.04)}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   input,select,button,textarea{padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
@@ -20,164 +21,185 @@
   .small{font-size:13px;color:var(--mut)}
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
-  th{background:linear-gradient(180deg,#f7fbff,#f2f8ff);position:sticky;top:0;z-index:1}
-  @media (max-width:880px){ .hide-sm{display:none} }
+  th{background:linear-gradient(180deg,#f7fbff,#f2f8ff);position:sticky;top:0;z-index:1; white-space:nowrap;}
+  
+  /* ให้ตารางเลื่อนซ้ายขวาได้ในมือถือ โดยไม่ซ่อนคอลัมน์สำคัญ */
+  .table-responsive { overflow-x: auto; }
+  
   .search{flex:1;min-width:220px}
-  .top-controls{display:flex;gap:8px;align-items:center}
-  .logo{font-weight:700}
   .muted{color:var(--mut);font-size:13px}
+  .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; white-space:nowrap;}
+  .b-done { background: #d1fae5; color: #065f46; border:1px solid #a7f3d0;}
+  .b-process { background: #ffedd5; color: #9a3412; border:1px solid #fed7aa;}
+  .b-change { background: #cffafe; color: #155e75; border:1px solid #a5f3fc;}
 </style>
 </head>
 <body>
 <header>
-  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px">
-    <div class="logo">Customer Portal — ดูรายการ</div>
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px">
+    <div style="font-weight:700;font-size:18px">Customer Portal</div>
     <div style="flex:1"></div>
-    <button id="cfgBtn" class="btn btn-ghost">ตั้งค่า</button>
+    <div class="small muted">ระบบตรวจสอบสถานะทะเบียน</div>
   </div>
 </header>
 
 <div class="wrap">
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-weight:600">รหัสลูกค้า (ที่คุณให้ลูกค้าใส่)</label>
-      <input id="access_code" placeholder="กรอกรหัสที่ลูกค้าได้รับ" style="min-width:260px">
-      <button id="useCode" class="btn btn-primary">ใช้รหัส</button>
+      <label style="font-weight:600">รหัสลูกค้าของคุณ:</label>
+      <input id="access_code" placeholder="เช่น RG-XXXX" style="min-width:200px">
+      <button id="useCode" class="btn btn-primary">ค้นหาข้อมูล</button>
 
-      <div style="width:8px"></div>
-      <select id="companySelect" style="min-width:220px"><option>— เลือกบริษัท (สำรอง) —</option></select>
-      <input id="q" class="search" placeholder="ค้นหา: ชื่อการค้า / ชื่อสามัญ / ผู้นำเข้า / แหล่งผลิต" />
-      <div style="flex:1"></div>
+      <div style="width:1px;height:24px;background:#e6eef5;margin:0 8px"></div>
+      
+      <input id="q" class="search" placeholder="กรอง: ชื่อการค้า / ชื่อสามัญ / ผู้นำเข้า..." />
       <button id="refreshBtn" class="btn btn-ghost">รีเฟรช</button>
-      <button id="exportBtn" class="btn btn-ghost">Export</button>
+      <button id="exportBtn" class="btn btn-ghost">Export CSV</button>
     </div>
-    <div class="small muted" style="margin-top:8px">กรอกรหัสแล้วจะดูได้เฉพาะข้อมูลของบริษัทนั้นเท่านั้น (ดูอย่างเดียว)</div>
+    <div class="small muted" style="margin-top:8px">กรุณากรอกรหัสลูกค้าที่ได้รับจากเจ้าหน้าที่เพื่อดูข้อมูล</div>
   </div>
 
   <div class="card">
-    <div style="overflow:auto;max-height:62vh">
+    <div class="table-responsive" style="max-height:68vh">
       <table aria-describedby="table-info">
         <thead>
           <tr>
-            <th style="width:44px">#</th>
+            <th style="width:40px">#</th>
             <th>ชื่อการค้า</th>
-            <th class="hide-sm">ชื่อสามัญ</th>
-            <th class="hide-sm">ผู้นำเข้า</th>
-            <th class="hide-sm">แหล่งผลิต</th>
+            <th>ชื่อสามัญ</th>
+            <th>ผู้นำเข้า</th> <th>แหล่งผลิต</th>
             <th>ผลเฟส1</th>
-            <th class="hide-sm">ผลวิเคราะห์</th>
-            <th class="hide-sm">แผน/ผลทดลอง</th>
-            <th class="hide-sm">ผลเฟส3</th>
+            <th>ผลวิเคราะห์</th>
+            <th>แผน/ผลทดลอง</th>
+            <th>ผลเฟส3</th>
             <th>หมายเหตุ</th>
+            <th>สถานะ</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="10" class="small muted">กรุณาใส่รหัสลูกค้าด้านบน</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="11" class="small muted">ระบุรหัสลูกค้าแล้วกด "ค้นหาข้อมูล"</td></tr></tbody>
       </table>
     </div>
     <div id="table-info" class="small muted" style="margin-top:8px"></div>
   </div>
 </div>
 
-<!-- config modal -->
-<div id="cfgModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:9999">
-  <div style="background:#fff;padding:18px;border-radius:12px;min-width:320px;max-width:720px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><strong>ตั้งค่า Supabase</strong><button id="closeCfg" class="btn btn-ghost">ปิด</button></div>
-    <div style="margin-top:12px">
-      <label class="small muted">Supabase URL</label>
-      <input id="cfg_url" style="width:100%" placeholder="https://your-project.supabase.co">
-      <label class="small muted" style="margin-top:8px;display:block">Anon (public) key</label>
-      <input id="cfg_key" style="width:100%" placeholder="public anon key">
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-        <button id="saveCfg" class="btn btn-primary">บันทึก</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script>
+// ================= CONFIG =================
+const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
+let currentRows = [];
 
-let SUPABASE_URL = localStorage.getItem('cust_sb_url') || '';
-let SUPABASE_ANON_KEY = localStorage.getItem('cust_sb_key') || '';
-let sb = null;
-
+// ================= LOGIC =================
 function init(){
-  $('cfg_url').value = SUPABASE_URL; $('cfg_key').value = SUPABASE_ANON_KEY;
-  if(SUPABASE_URL && SUPABASE_ANON_KEY){ sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); loadCompanies(); }
-  // restore access code if client saved it before
   const savedCode = localStorage.getItem('customer_access_code') || '';
-  if(savedCode){ $('access_code').value = savedCode; useAccessCode(savedCode); }
-}
-
-async function loadCompanies(){
-  if(!sb) return;
-  try{
-    const { data, error } = await sb.from('companies').select('code,name').order('code');
-    if(error) throw error;
-    const sel = $('companySelect'); sel.innerHTML = `<option value="">— เลือกบริษัท (สำรอง) —</option>` + (data||[]).map(c=>`<option value="${c.code}">${c.code} ${c.name||''}</option>`).join('');
-  }catch(e){ console.error(e); }
+  if(savedCode){ 
+    $('access_code').value = savedCode; 
+    useAccessCode(savedCode); 
+  }
 }
 
 async function useAccessCode(code){
-  if(!sb) return alert('ยังไม่ได้ตั้งค่า Supabase (กด ตั้งค่า)');
-  if(!code) return alert('กรุณากรอกรหัส');
-  // บันทึกไว้ให้สะดวก
+  code = code.trim();
+  if(!code) return alert('กรุณากรอกรหัสลูกค้า');
   localStorage.setItem('customer_access_code', code);
-  // พยายามโหลดข้อมูลโดยใช้ค่า company_code = code
+  
+  $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังโหลดข้อมูล...</td></tr>`;
+
   try{
-    const { data, error } = await sb.from('product_regs').select('trade_name,common_name,importer,manufacturer_source,result_phase1,analysis_result,plan_trial,result_phase3,note').eq('company_code', code).order('id');
+    // ดึงข้อมูล
+    const { data, error } = await sb
+      .from('product_regs')
+      .select('trade_name,common_name,importer,manufacturer_source,result_phase1,analysis_result,plan_trial,result_phase3,note,renewed_status')
+      .eq('company_code', code)
+      .order('id');
+
     if(error) throw error;
-    if(!data || data.length===0){ $('tbody').innerHTML = `<tr><td colspan="10" class="small muted">ไม่พบข้อมูลสำหรับรหัสนี้</td></tr>`; $('table-info').textContent = 'แสดง 0'; return; }
-    renderTable(data);
-  }catch(e){ console.error(e); alert('โหลดข้อมูลล้มเหลว: '+e.message); }
+    
+    if(!data || data.length === 0){
+      $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:#b91c1c">ไม่พบข้อมูลของรหัส "${code}" หรือรหัสไม่ถูกต้อง</td></tr>`;
+      $('table-info').textContent = 'พบ 0 รายการ';
+      currentRows = [];
+      return;
+    }
+
+    currentRows = data;
+    renderTable(currentRows);
+
+  }catch(e){
+    console.error(e);
+    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:red">เกิดข้อผิดพลาดในการโหลด: ${e.message}</td></tr>`;
+  }
 }
 
 function renderTable(rows){
   const tb = $('tbody');
-  if(!rows.length){ tb.innerHTML = `<tr><td colspan="10" class="small muted">ไม่พบรายการ</td></tr>`; $('table-info').textContent = ''; return; }
   const q = ($('q').value||'').trim().toLowerCase();
-  const filtered = q ? rows.filter(r=>[r.trade_name,r.common_name,r.importer,r.manufacturer_source,r.result_phase1,r.analysis_result,r.plan_trial,r.result_phase3,r.note].join(' ').toLowerCase().includes(q)) : rows;
-  tb.innerHTML = filtered.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.trade_name||'')}</td><td class="hide-sm">${escapeHtml(r.common_name||'')}</td><td class="hide-sm">${escapeHtml(r.importer||'')}</td><td class="hide-sm">${escapeHtml(r.manufacturer_source||'')}</td><td>${escapeHtml(r.result_phase1||'')}</td><td class="hide-sm">${escapeHtml(r.analysis_result||'')}</td><td class="hide-sm">${escapeHtml(r.plan_trial||'')}</td><td class="hide-sm">${escapeHtml(r.result_phase3||'')}</td><td>${escapeHtml(r.note||'')}</td></tr>`).join('');
-  $('table-info').textContent = `แสดง ${filtered.length} / ทั้งหมด ${rows.length}`;
+  
+  const filtered = q ? rows.filter(r => 
+    [r.trade_name,r.common_name,r.importer,r.manufacturer_source,r.note].join(' ').toLowerCase().includes(q)
+  ) : rows;
+
+  if(!filtered.length){
+    tb.innerHTML = `<tr><td colspan="11" class="small muted">ไม่พบรายการที่ค้นหา</td></tr>`;
+    $('table-info').textContent = '';
+    return;
+  }
+
+  tb.innerHTML = filtered.map((r,i)=> {
+    // จัดการสีสถานะ
+    let badge = '-';
+    if (r.renewed_status === 'ดำเนินการแล้ว') badge = '<span class="status-badge b-done">ดำเนินการแล้ว</span>';
+    else if (r.renewed_status === 'อยู่ระหว่างดำเนินการ') badge = '<span class="status-badge b-process">อยู่ระหว่างดำเนินการ</span>';
+    else if (r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่') badge = '<span class="status-badge b-change">เปลี่ยนแหล่งผลิตใหม่</span>';
+    else if (r.renewed_status) badge = `<span class="small">${esc(r.renewed_status)}</span>`;
+
+    return `
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-weight:600;color:#0ea5a5">${esc(r.trade_name)}</td>
+      <td>${esc(r.common_name)}</td>
+      <td style="color:#2563eb">${esc(r.importer)}</td> <td>${esc(r.manufacturer_source)}</td>
+      <td>${esc(r.result_phase1)}</td>
+      <td>${esc(r.analysis_result)}</td>
+      <td>${esc(r.plan_trial)}</td>
+      <td>${esc(r.result_phase3)}</td>
+      <td>${esc(r.note)}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  
+  $('table-info').textContent = `แสดง ${filtered.length} จากทั้งหมด ${rows.length} รายการ`;
 }
 
-function escapeHtml(s){ return String(s||'').replace(/[&<>'\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]||m)); }
+function esc(s){ return String(s||'').replace(/[&<>'\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]||m)); }
 
-// events
-$('cfgBtn').addEventListener('click', ()=>{ $('cfgModal').style.display='flex'; });
-$('closeCfg').addEventListener('click', ()=>{ $('cfgModal').style.display='none'; });
-$('saveCfg').addEventListener('click', ()=>{
-  SUPABASE_URL = $('cfg_url').value.trim(); SUPABASE_ANON_KEY = $('cfg_key').value.trim();
-  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return alert('กรุณากรอกค่าให้ครบ');
-  localStorage.setItem('cust_sb_url', SUPABASE_URL); localStorage.setItem('cust_sb_key', SUPABASE_ANON_KEY);
-  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  $('cfgModal').style.display='none';
-  loadCompanies();
-});
-$('refreshBtn').addEventListener('click', ()=>{
-  const code = $('access_code').value.trim(); if(code) useAccessCode(code); else loadRowsFallback();
-});
-$('companySelect').addEventListener('change', ()=>{ const c = $('companySelect').value; if(c){ $('access_code').value = c; useAccessCode(c); } });
-$('useCode').addEventListener('click', ()=>{ const code = $('access_code').value.trim(); useAccessCode(code); });
-$('q').addEventListener('input', ()=>{ const code = $('access_code').value.trim(); if(code) useAccessCode(code); });
-
-// fallback: ถ้าไม่มีรหัส ให้โหลดตาม companySelect (สำหรับกรณี admin ใช้งาน)
-async function loadRowsFallback(){
-  const comp = $('companySelect').value; if(!comp) return; try{ const { data, error } = await sb.from('product_regs').select('trade_name,common_name,importer,manufacturer_source,result_phase1,analysis_result,plan_trial,result_phase3,note').eq('company_code', comp).order('id'); if(error) throw error; renderTable(data||[]); }catch(e){ alert('โหลดล้มเหลว: '+e.message); }
-}
+// ================= EVENTS =================
+$('useCode').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
+$('access_code').addEventListener('keydown', (e)=>{ if(e.key==='Enter') useAccessCode($('access_code').value); });
+$('refreshBtn').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
+$('q').addEventListener('input', ()=>{ renderTable(currentRows); });
 
 $('exportBtn').addEventListener('click', ()=>{
-  const rows = Array.from(document.querySelectorAll('#tbody tr')).map(tr=>Array.from(tr.children).map(td=>td.textContent.replace(/\n/g,' ').trim()));
-  if(!rows.length) return alert('ไม่มีข้อมูลให้ส่งออก');
-  const aoa = [['#','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ'], ...rows];
-  const csv = aoa.map(r=>r.map(cell=>`"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download = 'customer_export.csv'; a.click();
+  if(!currentRows.length) return alert('ไม่มีข้อมูลให้ส่งออก');
+  const rows = Array.from(document.querySelectorAll('#tbody tr')).map(tr => 
+    Array.from(tr.children).map(td => td.textContent.replace(/\n/g,' ').trim())
+  );
+  // หัวตาราง CSV
+  const header = ['#','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ','สถานะ'];
+  
+  const csvContent = [header, ...rows].map(e => e.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `customer_export_${$('access_code').value}.csv`;
+  link.click();
 });
 
-// init
+// Start
 init();
-
 </script>
 </body>
 </html>
