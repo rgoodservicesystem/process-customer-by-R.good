@@ -94,7 +94,13 @@
       <button class="btn btn-ghost" onclick="quickFill('-')">(-) ขีดฆ่า</button>
     </div>
   </div>
+<div style="align-self: flex-end; display: flex; gap: 10px;">
+  <button id="importBtn" class="btn btn-ghost" style="border-color: var(--success); color: var(--success);">📥 นำเข้า Excel</button>
+  <button id="addRowBtn" class="btn btn-primary">+ เพิ่มรายการใหม่</button>
+  <button id="expBtn" class="btn btn-ghost">Export Excel</button>
+</div>
 
+<input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls, .csv" />
   <div class="card" style="padding: 0;">
     <div style="padding: 16px; border-bottom: 1px solid var(--border);" class="row">
       <input id="adminSearch" placeholder="ค้นหาตามชื่อการค้า หรือ ชื่อสามัญ..." style="flex:1">
@@ -261,6 +267,69 @@ $('setCodeBtn').onclick = async () => {
   const code = $('cust_code').value.trim();
   await sb.from('companies').upsert({ code: currentCompany, plain_code: code }, { onConflict: 'code' });
   alert('บันทึกรหัสลูกค้าเรียบร้อย');
+};
+$('addRowBtn').onclick = async () => {
+  if (!currentCompany) return alert('กรุณาเลือกบริษัทก่อนครับ');
+  
+  const newData = {
+    company_code: currentCompany,
+    trade_name: 'ชื่อใหม่ (คลิกเพื่อแก้ไข)',
+    common_name: '-',
+    importer: '-',
+    renewed_status: 'รอดำเนินการ'
+  };
+
+  const { error } = await sb.from('product_regs').insert([newData]);
+  if (error) {
+    alert('เกิดข้อผิดพลาด: ' + error.message);
+  } else {
+    loadDocs(currentCompany); // โหลดข้อมูลใหม่
+  }
+};
+// คลิกปุ่มแล้วไปเปิดเลือกไฟล์
+$('importBtn').onclick = () => $('fileInput').click();
+
+// เมื่อเลือกไฟล์เสร็จ
+$('fileInput').onchange = async (e) => {
+  if (!currentCompany) return alert('กรุณาเลือกบริษัทก่อนนำเข้าข้อมูล');
+  
+  const file = e.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = async (evt) => {
+    const data = evt.target.result;
+    const workbook = XLSX.read(data, { type: 'binary' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // เตรียมข้อมูลเพื่อเตรียม Insert
+    const toInsert = rows.map(row => ({
+      company_code: currentCompany,
+      trade_name: row['ชื่อการค้า'] || row['trade_name'] || '-',
+      common_name: row['ชื่อสามัญ'] || row['common_name'] || '-',
+      importer: row['ผู้นำเข้า'] || row['importer'] || '-',
+      manufacturer_source: row['แหล่งผลิต'] || row['manufacturer_source'] || '-',
+      result_phase1: row['เฟส 1'] || row['result_phase1'] || '-',
+      analysis_result: row['ผลวิเคราะห์'] || row['analysis_result'] || '-',
+      plan_trial: row['ผลทดลอง'] || row['plan_trial'] || '-',
+      result_phase3: row['เฟส 3'] || row['result_phase3'] || '-',
+      note: row['หมายเหตุ'] || row['note'] || '-',
+      renewed_status: 'รอดำเนินการ'
+    }));
+
+    if (confirm(`ตรวจพบข้อมูล ${toInsert.length} รายการ ยืนยันการนำเข้าหรือไม่?`)) {
+      const { error } = await sb.from('product_regs').insert(toInsert);
+      if (error) {
+        alert('นำเข้าไม่สำเร็จ: ' + error.message);
+      } else {
+        alert('นำเข้าข้อมูลสำเร็จ!');
+        loadDocs(currentCompany);
+      }
+    }
+    $('fileInput').value = ''; // Reset input
+  };
+
+  reader.readAsBinaryString(file);
 };
 </script>
 </body>
