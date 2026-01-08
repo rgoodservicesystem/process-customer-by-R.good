@@ -3,446 +3,265 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin Portal — ใบอนุญาตทะเบียน</title>
+<title>Admin Portal — ระบบจัดการข้อมูลทะเบียน (Clean & Full)</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f6fbff;--card:#fff;--mut:#64748b;--border:#e6eef5;--accent:#0ea5a5;--accent2:#60a5fa}
-  body{font-family:"Prompt",sans-serif;background:var(--bg);margin:0;color:#0f172a}
-  header{padding:16px;background:linear-gradient(180deg,#f0fbff,#eaf7ff);border-bottom:1px solid var(--border)}
-  .wrap{max-width:1200px;margin:18px auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 8px 28px rgba(10,30,60,.06)}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  input,select,button,textarea{padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
-  .btn{cursor:pointer}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:700}
-  .btn-ghost{background:#fff;border:1px solid #d6eef3;color:#0b6b6b}
-  .small{font-size:13px;color:var(--mut)}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
-  th{background:linear-gradient(180deg,#f7fbff,#f2f8ff);position:sticky;top:0;z-index:1}
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:9999}
-  .modal-box{background:#fff;padding:16px;border-radius:12px;width:820px;max-width:96%}
-  td.editable{cursor:text}
-  td.editing{background:#fffbe6}
-  tbody tr { transition: background-color 0.15s ease; }
-  tbody tr:hover { background-color: #e0f2fe; cursor: pointer; }
-  tr.st-done { background-color: #d1fae5 !important; }
-  tr.st-process { background-color: #ffedd5 !important; }
-  tr.st-change { background-color: #cffafe !important; }
-  .btn.small { font-size: 13px !important; padding: 4px 8px !important; }
+  :root {
+    --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; 
+    --primary: #0ea5a5; --accent: #0284c7; --danger: #ef4444; 
+    --success: #10b981; --warn: #f59e0b; --text: #1e293b;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Prompt", sans-serif; background: var(--bg); margin: 0; color: var(--text); }
+  
+  header { background: #fff; padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .brand { font-weight: 700; font-size: 1.2rem; color: var(--primary); }
+
+  .wrap { max-width: 1600px; margin: 20px auto; padding: 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+  
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input, select, button, textarea { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; outline: none; transition: 0.2s; }
+  input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+
+  .btn { cursor: pointer; font-weight: 700; border: none; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-ghost { background: #fff; border: 1px solid var(--border); color: var(--text); }
+  .btn-danger { background: #fff; border: 1px solid #fee2e2; color: var(--danger); }
+  
+  /* Table & Edit Mode */
+  .table-box { border-radius: 12px; border: 1px solid var(--border); overflow: auto; max-height: 65vh; background: #fff; }
+  table { width: 100%; border-collapse: collapse; min-width: 1600px; }
+  th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 13px; font-weight: 700; color: #64748b; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border); }
+  td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  
+  td.editable { cursor: pointer; border: 1px solid transparent; }
+  td.editable:hover { background: #f0fdfa !important; outline: 1px solid var(--primary); }
+  td.editing { padding: 0 !important; }
+  td.editing input { width: 100%; height: 45px; border: 2px solid var(--primary) !important; padding: 0 10px; border-radius: 0; background: #fff; font-family: inherit; }
+
+  /* Row Status */
+  tr.st-done { background-color: #f0fdf4 !important; }
+  tr.st-process { background-color: #fffbeb !important; }
+  tr.st-renew { background-color: #fdf2f8 !important; }
+  tr.st-fail { background-color: #fef2f2 !important; }
+
+  .toolbar-quick { background: #f8fafc; border: 1px dashed var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+  .actions-row { display: flex; gap: 4px; justify-content: flex-start; }
 </style>
 </head>
 <body>
+
 <header>
-  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px">
-    <div style="font-weight:700">Admin Portal — ใบอนุญาตทะเบียน</div>
-    <div style="flex:1"></div>
-    <div id="userEmail" class="small" style="margin-right:10px;color:#0891b2"></div>
-    <button id="signOutBtn" class="btn btn-ghost">Sign out</button>
+  <div class="brand">ADMIN PORTAL — ระบบจัดการทะเบียน</div>
+  <div class="row">
+    <div id="userEmail" style="font-weight: 600; color: var(--primary)"></div>
+    <button id="signOutBtn" class="btn btn-ghost">ออกระบบ</button>
   </div>
 </header>
 
 <div class="wrap">
   <div class="card">
-    <label><strong>1. เลือกบริษัท</strong></label>
     <div class="row">
-      <select id="companySelect" style="min-width:260px"><option>กำลังโหลด...</option></select>
-      <div style="flex:1"></div>
-      <input id="cust_code" placeholder="รหัสลูกค้า เช่น RG-1234" style="min-width:220px">
-      <button id="setCodeBtn" class="btn btn-primary">ตั้ง/เปลี่ยนรหัส</button>
-      <button id="copyCodeBtn" class="btn btn-ghost">คัดลอกรหัส</button>
+      <div style="flex:1; min-width: 300px;">
+        <label style="font-weight:700; display:block; margin-bottom:5px;">🏢 เลือกบริษัท</label>
+        <select id="companySelect" style="width: 100%;"><option>กำลังโหลด...</option></select>
+      </div>
+      <div style="flex:1; min-width: 300px;">
+        <label style="font-weight:700; display:block; margin-bottom:5px;">🔑 รหัสลูกค้า (RG Code)</label>
+        <div class="row">
+          <input id="cust_code" placeholder="เช่น RG-1234" style="flex:1">
+          <button id="setCodeBtn" class="btn btn-primary">บันทึกรหัส</button>
+        </div>
+      </div>
+      <div style="align-self: flex-end;">
+        <button id="expBtn" class="btn btn-ghost">Export Excel</button>
+      </div>
     </div>
-    <div id="msg" class="small" style="margin-top:8px"></div>
   </div>
 
-  <div class="card">
-    <label><strong>2. นำเข้า / ส่งออก Excel</strong></label>
+  <div class="toolbar-quick">
+    <div style="font-weight:700; font-size:13px; color:var(--primary); margin-bottom:10px;">⚡ Quick Toolbar (คลิกช่องในตารางก่อนแล้วกดปุ่มสัญลักษณ์):</div>
     <div class="row">
-      <button id="tplBtn" class="btn btn-ghost">โหลดเทมเพลต</button>
-      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
-      <button id="chooseFileBtn" class="btn btn-ghost">เลือกไฟล์ Excel</button>
-      <button id="previewBtn" class="btn btn-ghost">Preview</button>
-      <button id="impBtn" class="btn btn-primary">นำเข้า (Import)</button>
-      <button id="expBtn" class="btn btn-ghost">Export</button>
-      <label style="margin-left:8px"><input type="checkbox" id="replaceMode"> แทนที่ข้อมูลเดิมทั้งหมด</label>
-    </div>
-    <div id="previewArea" style="margin-top:12px"></div>
-  </div>
-
-  <div class="card">
-    <label><strong>3. เพิ่มรายการใหม่ (Manual)</strong></label>
-    <div class="row" style="align-items:center">
-      <input id="trade_name" placeholder="ชื่อการค้า">
-      <input id="common_name" placeholder="ชื่อสามัญ">
-      <input id="importer" placeholder="ผู้นำเข้า">
-      <input id="manufacturer_source" placeholder="แหล่งผลิต">
-      <input id="result_phase1" placeholder="ผลเฟส1">
-      <input id="analysis_result" placeholder="ผลวิเคราะห์">
-      <input id="plan_trial" placeholder="แผน/ผลทดลอง">
-      <input id="result_phase3" placeholder="ผลเฟส3">
-      <input id="note" placeholder="หมายเหตุ" style="min-width:200px">
-      <button id="addBtn" class="btn btn-primary">เพิ่ม</button>
+      <button class="btn btn-ghost" onclick="quickFill('✅ ผ่าน')">✅ ผ่าน</button>
+      <button class="btn btn-ghost" onclick="quickFill('❌ ไม่ผ่าน')">❌ ไม่ผ่าน</button>
+      <button class="btn btn-ghost" onclick="quickFill('⏳ รอข้อมูล')">⏳ รอข้อมูล</button>
+      <button class="btn btn-ghost" onclick="quickFill('⚠️ แก้ไข')">⚠️ แก้ไข</button>
+      <button class="btn btn-ghost" onclick="quickFill('-')">(-) ขีดฆ่า</button>
     </div>
   </div>
 
-  <div class="card"> 
-    <div class="row" style="margin-bottom:8px">
-      <input id="adminSearch" placeholder="ค้นหา..." style="min-width:360px">
-      <button id="adminClearBtn" class="btn btn-ghost">ล้าง</button>
-      <div style="flex:1"></div>
-      <div id="adminCount" class="small"></div>
+  <div class="card" style="padding: 0;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--border);" class="row">
+      <input id="adminSearch" placeholder="ค้นหาตามชื่อการค้า หรือ ชื่อสามัญ..." style="flex:1">
+      <div id="adminCount" style="font-weight:700; color:var(--primary)"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button id="btnSelectAllFiltered" class="btn btn-ghost small">เลือกทั้งหมด</button>
-      <button id="btnClearSel" class="btn btn-ghost small">ล้างเลือก</button>
-      <button id="btnDeleteSel" class="btn btn-danger small" style="color:red;border-color:red">ลบที่เลือก</button>
-      <div style="flex:1"></div>
-      <button id="btnNotePage" class="btn btn-ghost small">ดูเฉพาะที่มีหมายเหตุ</button>
-    </div>
-    <div style="overflow-y: auto; max-height: 64vh;"> 
+    
+    <div class="table-box">
       <table>
         <thead>
           <tr>
-            <th style="width:36px"><input id="chkAllVisible" type="checkbox"></th>
-            <th>#</th>
-            <th>รหัสบริษัท</th>
+            <th style="width: 40px;">#</th>
             <th>ชื่อการค้า</th>
             <th>ชื่อสามัญ</th>
             <th>ผู้นำเข้า</th>
             <th>แหล่งผลิต</th>
-            <th>ผลเฟส1</th>
+            <th>เฟส 1</th>
             <th>ผลวิเคราะห์</th>
-            <th>แผน/ผลทดลอง</th>
-            <th>ผลเฟส3</th>
+            <th>ผลทดลอง</th>
+            <th>เฟส 3</th>
             <th>หมายเหตุ</th>
             <th>สถานะ</th>
-            <th>จัดการ</th>
+            <th style="width: 180px; text-align: center;">จัดการสถานะ</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="14" class="small">กำลังตรวจสอบสิทธิ์...</td></tr></tbody>
+        <tbody id="tbody">
+          <tr><td colspan="12" style="text-align:center; padding: 50px; color: #94a3b8;">กรุณาเลือกบริษัทด้านบนเพื่อเริ่มต้นจัดการข้อมูล</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<div id="noteModal" class="modal"><div class="modal-box"><div style="display:flex;justify-content:space-between;align-items:center">
-  <strong>แก้ไขหมายเหตุ</strong><button id="closeNote" class="btn btn-ghost">ปิด</button></div>
-  <textarea id="noteText" style="width:100%;min-height:140px;margin-top:8px"></textarea>
-  <div style="display:flex;justify-content:flex-end;margin-top:8px"><button id="saveNote" class="btn btn-primary">บันทึก</button></div>
-</div></div>
-
 <script>
-// ================= CONFIG =================
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const COMPANIES_TABLE = 'companies';
-const REG_TABLE = 'product_regs';
-
 const $ = id => document.getElementById(id);
+
 let currentCompany = '';
 let cachedRows = [];
-let filteredRows = [];
-const selectedIds = new Set();
-let editingNoteId = null;
 
-function esc(s){ return String(s||'').replace(/[&<>'\"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\' : '&#39;', '"':'&quot;'}[m]) ); }
-function toast(m, ok=true){ $('msg').textContent = m; $('msg').style.color = ok ? '#065f46' : '#b91c1c'; setTimeout(()=>{$('msg').textContent='';}, 3500); }
-
-// ================= LOAD & LOGIN =================
+// --- Init ---
 document.addEventListener('DOMContentLoaded', async ()=>{
   const { data: { session } } = await sb.auth.getSession();
-  if(!session){
-    alert('กรุณาเข้าสู่ระบบก่อน');
-    window.location.href = 'login.html'; 
-    return;
-  }
+  if(!session) return window.location.href = 'login.html';
   $('userEmail').textContent = session.user.email;
   loadCompanies();
 });
 
 async function loadCompanies(){
-  const sel = $('companySelect');
-  sel.innerHTML = `<option value="">กำลังโหลด...</option>`;
-  try{
-    const { data, error } = await sb.from(COMPANIES_TABLE).select('code,name').order('code');
-    if(error) throw error;
-    sel.innerHTML = `<option value="">— เลือกบริษัท —</option>` + (data||[]).map(c=>`<option value="${esc(c.code)}">${esc(c.code)}${c.name? ' - '+esc(c.name):''}</option>`).join('');
-  }catch(e){ 
-    console.error(e); 
-    sel.innerHTML = `<option value="">โหลดผิดพลาด</option>`;
-  }
+  const { data } = await sb.from('companies').select('code,name').order('code');
+  $('companySelect').innerHTML = `<option value="">— เลือกบริษัทที่ต้องการจัดการ —</option>` + 
+    data.map(c=>`<option value="${c.code}">${c.code} : ${c.name||''}</option>`).join('');
 }
 
-$('companySelect').addEventListener('change', e=> { if(e.target.value) loadDocs(e.target.value); });
+$('companySelect').onchange = e => loadDocs(e.target.value);
 
 async function loadDocs(code){
   currentCompany = code;
-  selectedIds.clear();
-  if(!code){ $('tbody').innerHTML = `<tr><td colspan="14" class="small">กรุณาเลือกบริษัท</td></tr>`; $('adminCount').textContent=''; return; }
-  $('tbody').innerHTML = `<tr><td colspan="14" class="small">กำลังโหลดข้อมูล...</td></tr>`;
-  try{
-    const { data, error } = await sb.from(REG_TABLE).select('*').eq('company_code', code).order('id',{ascending:true});
-    if(error) throw error;
-    cachedRows = (data||[]);
-    filteredRows = [...cachedRows];
-    renderTable();
-  }catch(e){ 
-    console.error(e); 
-    $('tbody').innerHTML = `<tr><td colspan="14" class="small" style="color:red">โหลดไม่สำเร็จ: ${esc(e.message)}</td></tr>`; 
-  }
+  if(!code) return;
+  const { data } = await sb.from('product_regs').select('*').eq('company_code', code).order('id');
+  cachedRows = data || [];
+  renderTable();
 }
 
-function renderTable(q=''){
-  const tb = $('tbody');
-  if(!filteredRows.length){ tb.innerHTML = `<tr><td colspan="14" class="small">ไม่พบรายการ</td></tr>`; $('adminCount').textContent = ''; return; }
-  tb.innerHTML = filteredRows.map((r,i) => {
-    let statusClass = '';
-    if (r.renewed_status === 'ดำเนินการแล้ว') statusClass = 'st-done';
-    else if (r.renewed_status === 'อยู่ระหว่างดำเนินการ') statusClass = 'st-process';
-    else if (r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่') statusClass = 'st-change';
+function renderTable(){
+  const q = $('adminSearch').value.toLowerCase();
+  const filtered = cachedRows.filter(r => [r.trade_name, r.common_name].join(' ').toLowerCase().includes(q));
+
+  $('tbody').innerHTML = filtered.map((r, i) => {
+    const st = (r.renewed_status || '').trim();
+    let rowCls = '';
+    if(st === 'ดำเนินการแล้ว') rowCls = 'st-done';
+    else if(st.includes('ไม่ผ่าน')) rowCls = 'st-fail';
+    else if(st === 'อยู่ระหว่างดำเนินการ') rowCls = 'st-process';
+    else if(st === 'ต่ออายุ') rowCls = 'st-renew';
+
     return `
-    <tr class="${statusClass}">
-      <td><input type="checkbox" class="rowchk" data-id="${esc(r.id)}" ${selectedIds.has(r.id)?'checked':''}></td>
-      <td>${i+1}</td>
-      <td>${esc(r.company_code||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="trade_name">${esc(r.trade_name||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="common_name">${esc(r.common_name||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="importer">${esc(r.importer||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="manufacturer_source">${esc(r.manufacturer_source||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="result_phase1">${esc(r.result_phase1||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="analysis_result">${esc(r.analysis_result||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="plan_trial">${esc(r.plan_trial||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="result_phase3">${esc(r.result_phase3||'')}</td>
-      <td class="editable" data-id="${esc(r.id)}" data-field="note">${esc(r.note||'')}</td>
-      <td>${esc(r.renewed_status||'')}</td>
-      <td style="white-space:nowrap">
-         <button class="btn btn-ghost small" onclick="openNote('${esc(r.id)}')">📝</button>
-         <button class="btn btn-primary small" onclick="setStatus('${esc(r.id)}','ดำเนินการแล้ว')">✅</button>
-         <button class="btn btn-ghost small" onclick="setStatus('${esc(r.id)}','อยู่ระหว่างดำเนินการ')">⏳</button>
-         <button class="btn btn-ghost small" onclick="delDoc('${esc(r.id)}')">🗑️</button>
-      </td>
-    </tr>`;
+      <tr class="${rowCls}">
+        <td style="color:#94a3b8; font-size:11px">${i+1}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','trade_name')"><strong>${r.trade_name||'-'}</strong></td>
+        <td class="editable" onclick="editCell(this,'${r.id}','common_name')">${r.common_name||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','importer')">${r.importer||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','manufacturer_source')">${r.manufacturer_source||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','result_phase1')">${r.result_phase1||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','analysis_result')">${r.analysis_result||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','plan_trial')">${r.plan_trial||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','result_phase3')">${r.result_phase3||'-'}</td>
+        <td class="editable" onclick="editCell(this,'${r.id}','note')">${r.note||'-'}</td>
+        <td><small>${st || 'รอดำเนินการ'}</small></td>
+        <td>
+          <div class="actions-row">
+            <button class="btn btn-ghost small" onclick="updateStatus('${r.id}','ดำเนินการแล้ว')">✅</button>
+            <button class="btn btn-ghost small" onclick="updateStatus('${r.id}','อยู่ระหว่างดำเนินการ')">⏳</button>
+            <button class="btn btn-ghost small" onclick="updateStatus('${r.id}','ไม่ผ่านเกณฑ์')">❌</button>
+            <button class="btn btn-ghost small" onclick="updateStatus('${r.id}','ต่ออายุ')">♻️</button>
+            <button class="btn btn-danger small" onclick="delRow('${r.id}')">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
   }).join('');
-  
-  document.querySelectorAll('.rowchk').forEach(chk=>{
-    chk.addEventListener('change', (e)=>{
-      const id = e.target.dataset.id;
-      if(e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
-      updateCount();
-    });
-  });
-  updateCount();
+  $('adminCount').textContent = `ทั้งหมด ${filtered.length} รายการ`;
 }
-function updateCount(){ $('adminCount').textContent = `เลือก ${selectedIds.size} / แสดง ${filteredRows.length} / ทั้งหมด ${cachedRows.length}`; }
 
-$('chkAllVisible').addEventListener('change', (e)=>{
-  const isChecked = e.target.checked;
-  document.querySelectorAll('.rowchk').forEach(chk => {
-    chk.checked = isChecked;
-    if(isChecked) selectedIds.add(chk.dataset.id); else selectedIds.delete(chk.dataset.id);
-  });
-  updateCount();
-});
+// --- Logic การแก้ไข (คลิก 1 ทีติดชัวร์) ---
+window.editCell = (td, id, field) => {
+  if (td.classList.contains('editing')) return;
 
-// ================= EXCEL LOGIC (ส่วนที่เพิ่มกลับมา) =================
-$('tplBtn').addEventListener('click', ()=>{
-  const headers = ['trade_name','common_name','importer','manufacturer_source','result_phase1','analysis_result','plan_trial','result_phase3','note'];
-  const example = ['ตัวอย่าง','ชื่อสามัญ','บริษัท นำเข้า','ผู้ผลิต X','ผ่าน','ผลวิเคราะห์สั้น','ทดลอง/แผน','ผลเฟส3','หมายเหตุตัวอย่าง'];
-  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'template');
-  XLSX.writeFile(wb, 'template_registrations.xlsx');
-});
-
-$('chooseFileBtn').addEventListener('click', ()=> $('fileInput').click());
-$('fileInput').addEventListener('change', ()=> $('previewBtn').click());
-
-$('previewBtn').addEventListener('click', async ()=>{
-  const f = $('fileInput').files[0]; if(!f) return alert('เลือกไฟล์ก่อน');
-  try{
-    const ab = await f.arrayBuffer();
-    const wb = XLSX.read(ab, { type:'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' }); 
-    const table = document.createElement('table'); table.style.width='100%'; table.border=1;
-    rows.slice(0,10).forEach((r)=>{ const tr = table.insertRow(); r.forEach(c=>{ const td = tr.insertCell(); td.textContent = c; }); });
-    const pa = $('previewArea'); pa.innerHTML=''; pa.appendChild(table);
-    pa.insertAdjacentHTML('afterbegin', `<div class="small">Preview 10 แถวแรก</div>`);
-  }catch(e){ alert('Preview ไม่ได้: '+e.message); }
-});
-
-function pick(obj, keys){ if(!obj) return ''; for(const k of keys){ const sk = k.toLowerCase().trim(); for(const raw in obj){ if(raw.toLowerCase().trim()===sk) return obj[raw]; } } return ''; }
-
-$('impBtn').addEventListener('click', async ()=>{
-  const f = $('fileInput').files[0];
-  if(!f) return alert('เลือกไฟล์ก่อน');
-  if(!currentCompany) return alert('เลือกบริษัทก่อน');
-  if($('replaceMode').checked && !confirm('⚠️ จะลบข้อมูลเก่าทั้งหมดของบริษัทนี้ ยืนยัน?')) return;
-  
-  try{
-    const ab = await f.arrayBuffer();
-    const wb = XLSX.read(ab, { type:'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    
-    const mapped = rows.map(r=>{
-      return {
-        company_code: currentCompany,
-        trade_name: String(pick(r,['trade_name','ชื่อการค้า'])||'').trim(),
-        common_name: String(pick(r,['common_name','ชื่อสามัญ'])||'').trim(),
-        importer: String(pick(r,['importer','ผู้นำเข้า'])||'').trim()||null,
-        manufacturer_source: String(pick(r,['manufacturer_source','แหล่งผลิต','ผู้ผลิต'])||'').trim()||null,
-        result_phase1: String(pick(r,['result_phase1','ผลเฟส1'])||'').trim()||null,
-        analysis_result: String(pick(r,['analysis_result','ผลวิเคราะห์'])||'').trim()||null,
-        plan_trial: String(pick(r,['plan_trial','แผน/ผลทดลอง'])||'').trim()||null,
-        result_phase3: String(pick(r,['result_phase3','ผลเฟส3'])||'').trim()||null,
-        note: String(pick(r,['note','หมายเหตุ'])||'').trim()||null
-      };
-    }).filter(x=> x.trade_name && x.common_name);
-
-    if(mapped.length===0) return alert('ไม่พบข้อมูล (ต้องมี ชื่อการค้า และ ชื่อสามัญ)');
-    
-    // Replace Logic
-    if($('replaceMode').checked){ 
-       const del = await sb.from(REG_TABLE).delete().eq('company_code', currentCompany); 
-       if(del.error) throw del.error;
-    }
-    
-    // Batch Insert (500 rows/batch)
-    let count=0; 
-    for(let i=0; i<mapped.length; i+=500){ 
-       const chunk = mapped.slice(i,i+500); 
-       const { error } = await sb.from(REG_TABLE).insert(chunk); 
-       if(error) throw error; 
-       count += chunk.length; 
-    }
-    
-    toast(`✅ นำเข้าสำเร็จ ${count} รายการ`);
-    loadDocs(currentCompany);
-    $('fileInput').value = '';
-    $('previewArea').innerHTML = '';
-  }catch(err){ alert('Import Error: '+err.message); }
-});
-
-$('expBtn').addEventListener('click', ()=>{
-  if(!currentCompany || !cachedRows.length) return alert('ไม่มีข้อมูลให้ส่งออก');
-  const aoa = [['บริษัท','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ','สถานะ']];
-  cachedRows.forEach(r=> aoa.push([r.company_code, r.trade_name, r.common_name, r.importer, r.manufacturer_source, r.result_phase1, r.analysis_result, r.plan_trial, r.result_phase3, r.note, r.renewed_status]));
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Export');
-  XLSX.writeFile(wb, `export_${currentCompany}.xlsx`);
-});
-
-// ================= CUSTOMER CODE & SEARCH =================
-$('setCodeBtn').addEventListener('click', async ()=>{
-  if(!currentCompany) return alert('เลือกบริษัท');
-  const code = $('cust_code').value.trim(); if(!code) return alert('กรอกรหัส');
-  const { error } = await sb.from(COMPANIES_TABLE).upsert({ code: currentCompany, plain_code: code }, { onConflict: 'code' });
-  if(!error){ toast('บันทึกรหัสลูกค้าแล้ว'); loadCompanies(); } else alert(error.message);
-});
-$('copyCodeBtn').addEventListener('click', async ()=>{ 
-  const code = $('cust_code').value.trim(); 
-  if(code) { await navigator.clipboard.writeText(code); alert('คัดลอกแล้ว'); } 
-  else alert('ไม่มีรหัส'); 
-});
-
-$('adminSearch').addEventListener('input', ()=>{
-  const q = $('adminSearch').value.trim().toLowerCase();
-  if(!q) { filteredRows = [...cachedRows]; }
-  else {
-     const toks = q.split(/\s+/).filter(Boolean);
-     filteredRows = cachedRows.filter(r=>{
-        const hay = [r.trade_name,r.common_name,r.importer,r.manufacturer_source,r.note].join(' ').toLowerCase();
-        return toks.every(t => hay.includes(t));
-     });
-  }
-  renderTable();
-});
-$('adminClearBtn').addEventListener('click', ()=>{ $('adminSearch').value=''; filteredRows=[...cachedRows]; renderTable(); });
-
-$('btnSelectAllFiltered').addEventListener('click', ()=> filteredRows.forEach(r=> selectedIds.add(r.id)) || updateCount() || renderTable());
-$('btnClearSel').addEventListener('click', ()=> selectedIds.clear() || updateCount() || renderTable());
-$('btnDeleteSel').addEventListener('click', async ()=>{
-  if(!selectedIds.size) return alert('เลือกก่อน');
-  if(confirm(`ลบ ${selectedIds.size} รายการ?`)){
-     const { error } = await sb.from(REG_TABLE).delete().in('id', Array.from(selectedIds));
-     if(!error){ selectedIds.clear(); loadDocs(currentCompany); } else alert(error.message);
-  }
-});
-
-// ================= OTHER ACTIONS =================
-$('addBtn').addEventListener('click', async()=>{
-  if(!currentCompany) return alert('เลือกบริษัท');
-  const payload = {
-    company_code: currentCompany,
-    trade_name: $('trade_name').value.trim(),
-    common_name: $('common_name').value.trim(),
-    importer: $('importer').value.trim()||null,
-    manufacturer_source: $('manufacturer_source').value.trim()||null,
-    result_phase1: $('result_phase1').value.trim()||null,
-    analysis_result: $('analysis_result').value.trim()||null,
-    plan_trial: $('plan_trial').value.trim()||null,
-    result_phase3: $('result_phase3').value.trim()||null,
-    note: $('note').value.trim()||null
-  };
-  if(!payload.trade_name) return alert('ใส่ชื่อการค้า');
-  const {error} = await sb.from(REG_TABLE).insert(payload);
-  if(!error){ 
-     document.querySelectorAll('input').forEach(i=>{ if(i.id!=='adminSearch' && i.id!=='cust_code') i.value=''; });
-     loadDocs(currentCompany); 
-  } else alert(error.message);
-});
-
-$('btnNotePage').addEventListener('click', ()=>{
-  filteredRows = cachedRows.filter(r => r.note && r.note.trim() !== '');
-  renderTable();
-  $('adminSearch').value = '[หมายเหตุ]';
-});
-
-// Inline & Modal actions
-window.openNote = (id)=>{ editingNoteId=id; const r=cachedRows.find(x=>x.id==id); $('noteText').value=r?.note||''; $('noteModal').style.display='flex'; };
-$('closeNote').addEventListener('click', ()=>$('noteModal').style.display='none');
-$('saveNote').addEventListener('click', async()=>{
-  if(!editingNoteId) return;
-  const {error} = await sb.from(REG_TABLE).update({note:$('noteText').value}).eq('id',editingNoteId);
-  if(!error){ $('noteModal').style.display='none'; loadDocs(currentCompany); } else alert(error.message);
-});
-
-window.setStatus = async (id, st)=>{ const {error}=await sb.from(REG_TABLE).update({renewed_status:st}).eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); };
-window.delDoc = async (id)=>{ if(confirm('ลบ?')){ const {error}=await sb.from(REG_TABLE).delete().eq('id',id); if(!error) loadDocs(currentCompany); else alert(error.message); } };
-
-$('tbody').addEventListener('dblclick', (e)=>{
-  const td = e.target.closest('td.editable');
-  if(!td || td.classList.contains('editing')) return;
+  const oldVal = td.textContent === '-' ? '' : td.textContent;
   td.classList.add('editing');
-  const id = td.dataset.id;
-  const field = td.dataset.field;
-  const old = td.textContent.trim();
+  
   const input = document.createElement('input');
-  input.style.width = '100%'; input.value = old;
-  td.innerHTML = ''; td.appendChild(input); input.focus();
-  const finish = async ()=>{
-     td.classList.remove('editing');
-     const newVal = input.value.trim();
-     if(newVal === old) { td.innerHTML = esc(old); return; }
-     try{
-       const payload={}; payload[field]=newVal||null;
-       const {error}=await sb.from(REG_TABLE).update(payload).eq('id', id);
-       if(error) throw error;
-       loadDocs(currentCompany);
-     }catch(e){ alert('แก้ไม่ได้: '+e.message); td.innerHTML = esc(old); }
+  input.value = oldVal;
+  input.id = 'activeInputTarget'; // เป้าหมายสำหรับปุ่มลัดสัญลักษณ์
+  
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const newVal = input.value.trim();
+    if (newVal !== oldVal) {
+      td.textContent = '...';
+      const { error } = await sb.from('product_regs').update({ [field]: newVal || '-' }).eq('id', id);
+      if(!error) {
+        const row = cachedRows.find(x => x.id == id);
+        if(row) row[field] = newVal || '-';
+        renderTable();
+      }
+    } else {
+      td.textContent = oldVal || '-';
+    }
+    td.classList.remove('editing');
   };
-  input.addEventListener('keydown', ev=>{ if(ev.key==='Enter') finish(); if(ev.key==='Escape'){td.innerHTML=esc(old); td.classList.remove('editing');} });
-  input.addEventListener('blur', finish);
-});
 
-$('signOutBtn').addEventListener('click', async()=>{ await sb.auth.signOut(); window.location.href='login.html'; });
+  input.onblur = save;
+  input.onkeydown = e => { if(e.key==='Enter') save(); if(e.key==='Escape') renderTable(); };
+};
 
+window.quickFill = (icon) => {
+  const input = $('activeInputTarget');
+  if (input) {
+    input.value = icon + ' ' + input.value;
+    input.focus();
+  } else {
+    alert('กรุณาคลิกเลือกช่องในตารางก่อนครับ!');
+  }
+};
+
+window.updateStatus = async (id, st) => {
+  let data = { renewed_status: st };
+  if(st === 'ต่ออายุ') data.result_phase1 = '-';
+  await sb.from('product_regs').update(data).eq('id', id);
+  loadDocs(currentCompany);
+};
+
+window.delRow = async id => { if(confirm('ลบรายการนี้?')) { await sb.from('product_regs').delete().eq('id', id); loadDocs(currentCompany); } };
+$('adminSearch').oninput = renderTable;
+$('signOutBtn').onclick = async () => { await sb.auth.signOut(); window.location.href='login.html'; };
+
+$('setCodeBtn').onclick = async () => {
+  const code = $('cust_code').value.trim();
+  await sb.from('companies').upsert({ code: currentCompany, plain_code: code }, { onConflict: 'code' });
+  alert('บันทึกรหัสลูกค้าเรียบร้อย');
+};
 </script>
 </body>
 </html>
