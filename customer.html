@@ -3,94 +3,154 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Customer Portal — ตรวจสอบสถานะ</title>
+<title>Customer Portal — ระบบติดตามสถานะทะเบียนแบบละเอียด</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f6fbff;--card:#fff;--mut:#64748b;--border:#e6eef5;--accent:#0ea5a5;--accent2:#60a5fa}
-  *{box-sizing:border-box}
-  body{font-family:"Prompt",sans-serif;background:var(--bg);margin:0;color:#0f172a}
-  
-  header{padding:12px 20px;background:linear-gradient(180deg,#f0fbff,#eaf7ff);border-bottom:1px solid var(--border)}
-  
-  .wrap{max-width:1200px;margin:20px auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 8px 28px rgba(10,30,60,.04)}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  input,select,button,textarea{padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;background:#fff}
-  .btn{cursor:pointer; transition:0.2s}
-  .btn:hover{opacity:0.9}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:700}
-  .btn-ghost{background:#fff;border:1px solid #d6eef3;color:#0b6b6b}
-  
-  .btn-link{text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:#0f172a; padding:8px 16px; border-radius:8px; background:#fff; border:1px solid #cbd5e1;}
-  .btn-link:hover{background:#f1f5f9; color:#0ea5a5; border-color:#0ea5a5;}
+  :root {
+    --primary: #0ea5e9;
+    --primary-dark: #0284c7;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
 
-  .small{font-size:13px;color:var(--mut)}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
-  th{background:linear-gradient(180deg,#f7fbff,#f2f8ff);position:sticky;top:0;z-index:1; white-space:nowrap;}
+  * { box-sizing: border-box; transition: all 0.2s ease; }
+  body { font-family: "Prompt", sans-serif; background: var(--bg); margin: 0; color: var(--text-main); line-height: 1.6; }
+
+  header { 
+    background: #fff; border-bottom: 1px solid var(--border); padding: 1rem 0; 
+    position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .header-content { max-width: 1600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+  .logo { font-weight: 800; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
   
-  .table-responsive { overflow-x: auto; }
+  .wrap { max-width: 1600px; margin: 1.5rem auto; padding: 0 20px; }
   
-  .search{flex:1;min-width:220px}
-  .muted{color:var(--mut);font-size:13px}
-  .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; white-space:nowrap;}
-  .b-done { background: #d1fae5; color: #065f46; border:1px solid #a7f3d0;}
-  .b-process { background: #ffedd5; color: #9a3412; border:1px solid #fed7aa;}
-  .b-change { background: #cffafe; color: #155e75; border:1px solid #a5f3fc;}
+  .search-card { 
+    background: var(--card); border-radius: 16px; padding: 24px; border: 1px solid var(--border); 
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem;
+  }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-box { background: #fff; padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+  .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+
+  .input-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  input { 
+    padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); 
+    font-size: 14px; flex: 1; min-width: 200px; background: #f1f5f9;
+  }
+  input:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1); }
+  
+  .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; border: 1px solid transparent; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text-main); }
+
+  .table-container { background: #fff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+  .table-scroll { overflow-x: auto; max-height: 65vh; }
+  table { width: 100%; border-collapse: collapse; min-width: 1400px; text-align: left; table-layout: fixed; }
+  
+  /* ปรับความกว้างคอลัมน์ */
+  th:nth-child(1) { width: 50px; }   /* # */
+  th:nth-child(2) { width: 250px; }  /* ผลิตภัณฑ์ */
+  th:nth-child(3) { width: 200px; }  /* ผู้นำเข้า/แหล่ง */
+  th:nth-child(4) { width: 220px; }  /* เฟส 1 & วิเคราะห์ */
+  th:nth-child(5) { width: 220px; }  /* ทดลอง & เฟส 3 */
+  th:nth-child(6) { width: 200px; }  /* หมายเหตุ */
+  th:nth-child(7) { width: 160px; }  /* สถานะ */
+
+  th { background: #f8fafc; padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  td { padding: 16px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; word-wrap: break-word; }
+  tr:hover td { background-color: #f0f9ff; }
+
+  /* Badge Styles */
+  .badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .bg-success { background: #ecfdf5; color: #059669; }
+  .bg-warning { background: #fffbeb; color: #d97706; }
+  .bg-pink { background: #fdf2f8; color: #db2777; }
+  .bg-info { background: #f0f9ff; color: #0284c7; }
+
+  /* Group Info Styles */
+  .info-group { display: flex; flex-direction: column; gap: 6px; }
+  .info-item { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
+  .label-tag { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: #e2e8f0; color: #475569; text-transform: uppercase; margin-top: 3px; }
+  
+  .trade-name { color: var(--primary-dark); font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .empty-state { padding: 60px; text-align: center; color: var(--text-muted); }
 </style>
 </head>
 <body>
 
 <header>
-  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <div style="font-weight:700;font-size:18px;margin-right:auto">Customer Portal</div>
-    <a href="customer_dashboard.html" class="btn-link">📊 ดูสรุปภาพรวม</a>
-    <div class="small muted" style="display:none; @media(min-width:600px){display:block}">ระบบตรวจสอบสถานะทะเบียน</div>
+  <div class="header-content">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      REGISTRY CUSTOMER PORTAL
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="customer_dashboard.html" class="btn btn-outline" style="text-decoration:none">📊 ภาพรวมสรุป</a>
+    </div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-weight:600">รหัสลูกค้าของคุณ:</label>
-      <input id="access_code" placeholder="เช่น RG-XXXX" style="min-width:200px">
+  <div class="search-card">
+    <div class="input-group">
+      <input id="access_code" placeholder="รหัสลูกค้า (RG-XXXX)">
       <button id="useCode" class="btn btn-primary">ค้นหาข้อมูล</button>
-      <div style="width:1px;height:24px;background:#e6eef5;margin:0 8px"></div>
-      <input id="q" class="search" placeholder="กรอง: ชื่อการค้า / ชื่อสามัญ / ผู้นำเข้า..." />
-      <button id="refreshBtn" class="btn btn-ghost">รีเฟรช</button>
-      <button id="exportBtn" class="btn btn-ghost">Export CSV</button>
+      <div style="width:1px; background:var(--border); margin: 0 5px;"></div>
+      <input id="q" placeholder="ค้นหาชื่อสินค้า..." style="flex: 2;">
+      <button id="refreshBtn" class="btn btn-outline">รีเฟรช</button>
+      <button id="exportBtn" class="btn btn-outline">Export</button>
     </div>
-    <div class="small muted" style="margin-top:8px">กรุณากรอกรหัสลูกค้าที่ได้รับจากเจ้าหน้าที่เพื่อดูข้อมูล</div>
   </div>
 
-  <div class="card">
-    <div class="table-responsive" style="max-height:68vh">
-      <table aria-describedby="table-info">
+  <div id="statsArea" class="stats-grid" style="display: none;">
+    <div class="stat-box">
+      <div id="stat-total" class="stat-val">0</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">ทั้งหมด</div>
+    </div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--success);">
+      <div id="stat-done" class="stat-val" style="color: var(--success);">0</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">สำเร็จแล้ว</div>
+    </div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--warning);">
+      <div id="stat-pending" class="stat-val" style="color: var(--warning);">0</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">กำลังดำเนินการ</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-scroll">
+      <table>
         <thead>
           <tr>
-            <th style="width:40px">#</th>
-            <th>ชื่อการค้า</th>
-            <th>ชื่อสามัญ</th>
-            <th>ผู้นำเข้า</th>
-            <th>แหล่งผลิต</th>
-            <th>ผลเฟส1</th>
-            <th>ผลวิเคราะห์</th>
-            <th>แผน/ผลทดลอง</th>
-            <th>ผลเฟส3</th>
+            <th style="text-align:center">#</th>
+            <th>ผลิตภัณฑ์</th>
+            <th>ผู้นำเข้า/แหล่งผลิต</th>
+            <th>ขั้นตอน: เฟส 1 & วิเคราะห์</th>
+            <th>ขั้นตอน: ทดลอง & เฟส 3</th>
             <th>หมายเหตุ</th>
-            <th>สถานะ</th>
+            <th>สถานะปัจจุบัน</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="11" class="small muted">ระบุรหัสลูกค้าแล้วกด "ค้นหาข้อมูล"</td></tr></tbody>
+        <tbody id="tbody">
+          <tr><td colspan="7" class="empty-state">กรุณาระบุรหัสเพื่อดูข้อมูล</td></tr>
+        </tbody>
       </table>
     </div>
-    <div id="table-info" class="small muted" style="margin-top:8px"></div>
+    <div id="table-info" style="padding: 14px; font-size: 13px; color: var(--text-muted); background: #f8fafc; border-top: 1px solid var(--border);"></div>
   </div>
 </div>
 
 <script>
-// CONFIG
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -99,137 +159,125 @@ let currentRows = [];
 
 function init(){
   const savedCode = localStorage.getItem('customer_access_code') || '';
-  if(savedCode){ $('access_code').value = savedCode; loadDashboard(savedCode); }
+  if(savedCode){ $('access_code').value = savedCode; useAccessCode(savedCode); }
 }
 
 async function useAccessCode(inputCode){
-  inputCode = inputCode.trim();
-  if(!inputCode) return alert('กรุณากรอกรหัสลูกค้า');
-  
-  // บันทึกรหัสที่ลูกค้าพิมพ์ไว้ก่อน
+  inputCode = inputCode.trim(); if(!inputCode) return;
   localStorage.setItem('customer_access_code', inputCode);
-  $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังค้นหาบริษัท...</td></tr>`;
+  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดข้อมูล...</td></tr>`;
 
-  try{
-    // --- แก้ไข: ขั้นตอนที่ 1 ค้นหา "รหัสบริษัทตัวจริง" ก่อน ---
-    // ค้นหาว่า inputCode ตรงกับ 'code' (รหัสระบบ) หรือ 'plain_code' (รหัสลูกค้าตั้งเอง) หรือไม่
-    const { data: companies, error: compError } = await sb
-      .from('companies')
-      .select('code, name')
-      .or(`code.eq.${inputCode},plain_code.eq.${inputCode}`)
-      .limit(1);
-
-    if(compError) throw compError;
-
-    // ถ้าไม่เจอบริษัทเลย ให้ลองค้นหาแบบเดิม (เผื่อฟลุ๊ค) หรือแจ้งเตือน
-    let targetCode = inputCode;
-    let companyName = '';
-
-    if(companies && companies.length > 0){
-        targetCode = companies[0].code; // ได้รหัสตัวจริงมาแล้ว (FK)
-        companyName = companies[0].name || '';
-        console.log(`Found Company: ${companyName} (${targetCode})`);
-    } else {
-        // ถ้าไม่เจอในตาราง companies อาจจะแปลว่ารหัสผิด หรือยังไม่ได้สร้างบริษัท
-        // แต่เราจะลองค้นหาใน product_regs ตรงๆ ดู เผื่อเป็นข้อมูลเก่า
-        console.warn('Company not found, trying direct search...');
-    }
-
-    // --- ขั้นตอนที่ 2 ดึงข้อมูลสินค้า โดยใช้รหัสตัวจริง (targetCode) ---
-    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted">กำลังโหลดข้อมูลสินค้า...</td></tr>`;
-    
-    const { data, error } = await sb
-      .from('product_regs')
-      .select('trade_name,common_name,importer,manufacturer_source,result_phase1,analysis_result,plan_trial,result_phase3,note,renewed_status')
-      .eq('company_code', targetCode)
-      .order('id');
-
+  try {
+    const { data: companies } = await sb.from('companies').select('code, name').or(`code.eq.${inputCode},plain_code.eq.${inputCode}`).limit(1);
+    let targetCode = companies?.[0]?.code || inputCode;
+    const { data, error } = await sb.from('product_regs').select('*').eq('company_code', targetCode).order('id');
     if(error) throw error;
     
-    if(!data || data.length === 0){
-      $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:#b91c1c">ไม่พบข้อมูลสินค้าสำหรับรหัส "${inputCode}"</td></tr>`;
-      $('table-info').textContent = 'พบ 0 รายการ';
-      currentRows = [];
-      return;
-    }
-
-    currentRows = data;
+    currentRows = data || [];
+    updateStats(currentRows);
     renderTable(currentRows);
-    
-    // แสดงชื่อบริษัทเล็กๆ ถ้าเจอ
-    if(companyName) $('table-info').innerHTML = `<strong>${escapeHtml(companyName)}</strong> — พบ ${data.length} รายการ`;
-
-  }catch(e){
-    console.error(e);
-    $('tbody').innerHTML = `<tr><td colspan="11" class="small muted" style="color:red">เกิดข้อผิดพลาด: ${e.message}</td></tr>`;
+    if(companies?.[0]) $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ทั้งหมด ${data.length} รายการ`;
+  } catch(e) {
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">ไม่พบข้อมูลรหัสนี้</td></tr>`;
   }
+}
+
+function updateStats(rows) {
+  $('statsArea').style.display = 'grid';
+  $('stat-total').textContent = rows.length;
+  $('stat-done').textContent = rows.filter(r => r.renewed_status === 'ดำเนินการแล้ว').length;
+  $('stat-pending').textContent = rows.filter(r => r.renewed_status === 'อยู่ระหว่างดำเนินการ').length;
 }
 
 function renderTable(rows){
   const tb = $('tbody');
   const q = ($('q').value||'').trim().toLowerCase();
-  
-  const filtered = q ? rows.filter(r => 
-    [r.trade_name,r.common_name,r.importer,r.manufacturer_source,r.note].join(' ').toLowerCase().includes(q)
-  ) : rows;
+  const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
 
   if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="11" class="small muted">ไม่พบรายการที่ค้นหา</td></tr>`;
-    $('table-info').textContent = '';
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>`;
     return;
   }
 
   tb.innerHTML = filtered.map((r,i)=> {
-    let badge = '-';
-    if (r.renewed_status === 'ดำเนินการแล้ว') badge = '<span class="status-badge b-done">ดำเนินการแล้ว</span>';
-    else if (r.renewed_status === 'อยู่ระหว่างดำเนินการ') badge = '<span class="status-badge b-process">อยู่ระหว่างดำเนินการ</span>';
-    else if (r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่') badge = '<span class="status-badge b-change">เปลี่ยนแหล่งผลิตใหม่</span>';
-    else if (r.renewed_status) badge = `<span class="small">${escapeHtml(r.renewed_status)}</span>`;
+    const st = (r.renewed_status || '').trim();
+    let statusBadge = `<span class="badge bg-info">${st || 'รอดำเนินการ'}</span>`;
+    if (st === 'ดำเนินการแล้ว') statusBadge = '<span class="badge bg-success">✓ สำเร็จ</span>';
+    else if (st === 'ต่ออายุ') statusBadge = '<span class="badge bg-pink">♻ ต่ออายุ</span>';
+    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = '<span class="badge bg-warning">⏳ ดำเนินการ</span>';
 
     return `
     <tr>
-      <td>${i+1}</td>
-      <td style="font-weight:600;color:#0ea5a5">${escapeHtml(r.trade_name)}</td>
-      <td>${escapeHtml(r.common_name)}</td>
-      <td style="color:#2563eb">${escapeHtml(r.importer)}</td>
-      <td>${escapeHtml(r.manufacturer_source)}</td>
-      <td>${escapeHtml(r.result_phase1)}</td>
-      <td>${escapeHtml(r.analysis_result)}</td>
-      <td>${escapeHtml(r.plan_trial)}</td>
-      <td>${escapeHtml(r.result_phase3)}</td>
-      <td>${escapeHtml(r.note)}</td>
-      <td>${badge}</td>
+      <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
+      <td>
+        <div class="trade-name">${r.trade_name}</div>
+        <div style="font-size:12px; color:var(--text-muted)">สามัญ: ${r.common_name || '-'}</div>
+      </td>
+      <td>
+        <div style="font-weight:500; font-size:13px;">${r.importer || '-'}</div>
+        <div style="font-size:11px; color:var(--text-muted)">แหล่ง: ${r.manufacturer_source || '-'}</div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">เฟส 1</span> <span>${r.result_phase1 || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">ผลวิเคราะห์</span> <span>${r.analysis_result || '-'}</span></div>
+        </div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">แผน/ผลทดลอง</span> <span>${r.plan_trial || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">เฟส 3</span> <span>${r.result_phase3 || '-'}</span></div>
+        </div>
+      </td>
+      <td style="font-size:12px; color:var(--text-muted)">${r.note || '-'}</td>
+      <td>${statusBadge}</td>
     </tr>`;
   }).join('');
-  
-  if(!$('table-info').innerHTML.includes('<strong>')) {
-     $('table-info').textContent = `แสดง ${filtered.length} จากทั้งหมด ${rows.length} รายการ`;
-  }
 }
 
-function escapeHtml(s){ return String(s||'').replace(/[&<>'\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]||m)); }
-
-// EVENTS
-$('useCode').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
-$('access_code').addEventListener('keydown', (e)=>{ if(e.key==='Enter') useAccessCode($('access_code').value); });
-$('refreshBtn').addEventListener('click', ()=>{ useAccessCode($('access_code').value); });
-$('q').addEventListener('input', ()=>{ renderTable(currentRows); });
-
-$('exportBtn').addEventListener('click', ()=>{
-  if(!currentRows.length) return alert('ไม่มีข้อมูลให้ส่งออก');
-  const rows = Array.from(document.querySelectorAll('#tbody tr')).map(tr => 
-    Array.from(tr.children).map(td => td.textContent.replace(/\n/g,' ').trim())
-  );
-  const header = ['#','ชื่อการค้า','ชื่อสามัญ','ผู้นำเข้า','แหล่งผลิต','ผลเฟส1','ผลวิเคราะห์','แผน/ผลทดลอง','ผลเฟส3','หมายเหตุ','สถานะ'];
-  const csvContent = [header, ...rows].map(e => e.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `customer_export_${$('access_code').value}.csv`;
-  link.click();
-});
-
+$('useCode').onclick = () => useAccessCode($('access_code').value);
+$('q').oninput = () => renderTable(currentRows);
+$('refreshBtn').onclick = () => useAccessCode($('access_code').value);
 init();
+
+/// --- ฟังก์ชันสำหรับการ Export เป็นไฟล์ Excel (.xlsx) ---
+$('exportBtn').onclick = () => {
+  if (currentRows.length === 0) return alert('ไม่มีข้อมูลให้ Export ครับ');
+
+  const q = ($('q').value||'').trim().toLowerCase();
+  const dataToExport = q ? currentRows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : currentRows;
+
+  // 1. เตรียมข้อมูลในรูปแบบ Array of Objects ให้ตรงกับหัวคอลัมน์ที่ต้องการ
+  const excelData = dataToExport.map((r, i) => ({
+    "ลำดับ": i + 1,
+    "ชื่อการค้า": r.trade_name || '-',
+    "ชื่อสามัญ": r.common_name || '-',
+    "ผู้นำเข้า": r.importer || '-',
+    "แหล่งผลิต": r.manufacturer_source || '-',
+    "ผลเฟส 1": r.result_phase1 || '-',
+    "ผลวิเคราะห์": r.analysis_result || '-',
+    "แผน/ผลทดลอง": r.plan_trial || '-',
+    "ผลเฟส 3": r.result_phase3 || '-',
+    "หมายเหตุ": r.note || '-',
+    "สถานะ": r.renewed_status || 'รอดำเนินการ'
+  }));
+
+  // 2. สร้าง Workbook และ Worksheet
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Registration_Data");
+
+  // 3. ตั้งค่าความกว้างคอลัมน์อัตโนมัติ (Optional)
+  const wscols = [
+    {wch: 6}, {wch: 25}, {wch: 25}, {wch: 20}, {wch: 20}, 
+    {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 30}, {wch: 15}
+  ];
+  worksheet['!cols'] = wscols;
+
+  // 4. สั่งดาวน์โหลดเป็นไฟล์ .xlsx
+  const fileName = `Data_Export_${$('access_code').value || 'Customer'}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
 </script>
 </body>
 </html>
