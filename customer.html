@@ -57,27 +57,24 @@
   .table-scroll { overflow-x: auto; max-height: 65vh; }
   table { width: 100%; border-collapse: collapse; min-width: 1400px; text-align: left; table-layout: fixed; }
   
-  /* ปรับความกว้างคอลัมน์ */
-  th:nth-child(1) { width: 50px; }   /* # */
-  th:nth-child(2) { width: 250px; }  /* ผลิตภัณฑ์ */
-  th:nth-child(3) { width: 200px; }  /* ผู้นำเข้า/แหล่ง */
-  th:nth-child(4) { width: 220px; }  /* เฟส 1 & วิเคราะห์ */
-  th:nth-child(5) { width: 220px; }  /* ทดลอง & เฟส 3 */
-  th:nth-child(6) { width: 200px; }  /* หมายเหตุ */
-  th:nth-child(7) { width: 160px; }  /* สถานะ */
+  th:nth-child(1) { width: 50px; }
+  th:nth-child(2) { width: 250px; }
+  th:nth-child(3) { width: 200px; }
+  th:nth-child(4) { width: 220px; }
+  th:nth-child(5) { width: 220px; }
+  th:nth-child(6) { width: 200px; }
+  th:nth-child(7) { width: 160px; }
 
   th { background: #f8fafc; padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
   td { padding: 16px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; word-wrap: break-word; }
   tr:hover td { background-color: #f0f9ff; }
 
-  /* Badge Styles */
   .badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
   .bg-success { background: #ecfdf5; color: #059669; }
   .bg-warning { background: #fffbeb; color: #d97706; }
   .bg-pink { background: #fdf2f8; color: #db2777; }
   .bg-info { background: #f0f9ff; color: #0284c7; }
 
-  /* Group Info Styles */
   .info-group { display: flex; flex-direction: column; gap: 6px; }
   .info-item { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
   .label-tag { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: #e2e8f0; color: #475569; text-transform: uppercase; margin-top: 3px; }
@@ -92,10 +89,11 @@
   <div class="header-content">
     <div class="logo">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      REGISTRY CUSTOMER PORTAL
+      <span id="header-title">REGISTRY CUSTOMER PORTAL</span>
     </div>
-    <div style="display: flex; gap: 10px;">
-      <a href="customer_dashboard.html" class="btn btn-outline" style="text-decoration:none">📊 ภาพรวมสรุป</a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button id="langBtn" class="btn btn-outline" onclick="toggleLang()">🇹🇭 TH</button>
+      <a href="customer_dashboard.html" class="btn btn-outline" style="text-decoration:none" id="nav-dashboard">📊 ภาพรวมสรุป</a>
     </div>
   </div>
 </header>
@@ -115,15 +113,15 @@
   <div id="statsArea" class="stats-grid" style="display: none;">
     <div class="stat-box">
       <div id="stat-total" class="stat-val">0</div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">ทั้งหมด</div>
+      <div class="stat-label">ทั้งหมด</div>
     </div>
     <div class="stat-box" style="border-bottom: 3px solid var(--success);">
       <div id="stat-done" class="stat-val" style="color: var(--success);">0</div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">สำเร็จแล้ว</div>
+      <div class="stat-label">สำเร็จแล้ว</div>
     </div>
     <div class="stat-box" style="border-bottom: 3px solid var(--warning);">
       <div id="stat-pending" class="stat-val" style="color: var(--warning);">0</div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">กำลังดำเนินการ</div>
+      <div class="stat-label">กำลังดำเนินการ</div>
     </div>
   </div>
 
@@ -142,7 +140,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="7" class="empty-state">กรุณาระบุรหัสเพื่อดูข้อมูล</td></tr>
+          <tr><td colspan="7" class="empty-state" id="initial-msg">กรุณาระบุรหัสเพื่อดูข้อมูล</td></tr>
         </tbody>
       </table>
     </div>
@@ -151,21 +149,126 @@
 </div>
 
 <script>
+// --- Configuration ---
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let currentRows = [];
 
-function init(){
-  const savedCode = localStorage.getItem('customer_access_code') || '';
-  if(savedCode){ $('access_code').value = savedCode; useAccessCode(savedCode); }
+let currentRows = [];
+let currentLang = localStorage.getItem('lang') || 'th';
+
+// --- Multi-language Data ---
+const translations = {
+  th: {
+    title: "REGISTRY CUSTOMER PORTAL",
+    nav_dash: "📊 ภาพรวมสรุป",
+    search_placeholder: "รหัสลูกค้า (RG-XXXX)",
+    search_btn: "ค้นหาข้อมูล",
+    search_product: "ค้นหาชื่อสินค้า...",
+    refresh: "รีเฟรช",
+    export: "Export",
+    stat_total: "ทั้งหมด",
+    stat_done: "สำเร็จแล้ว",
+    stat_pending: "กำลังดำเนินการ",
+    th_no: "#",
+    th_product: "ผลิตภัณฑ์",
+    th_importer: "ผู้นำเข้า/แหล่งผลิต",
+    th_phase1: "ขั้นตอน: เฟส 1 & วิเคราะห์",
+    th_phase2: "ขั้นตอน: ทดลอง & เฟส 3",
+    th_note: "หมายเหตุ",
+    th_status: "สถานะปัจจุบัน",
+    empty: "กรุณาระบุรหัสเพื่อดูข้อมูล",
+    loading: "กำลังโหลดข้อมูล...",
+    not_found: "ไม่พบข้อมูลรหัสนี้",
+    no_results: "ไม่พบข้อมูล",
+    status_done: "✓ สำเร็จ",
+    status_renew: "♻ ต่ออายุ",
+    status_pending: "⏳ ดำเนินการ",
+    status_wait: "รอดำเนินการ",
+    label_phase1: "เฟส 1",
+    label_analysis: "ผลวิเคราะห์",
+    label_trial: "แผน/ผลทดลอง",
+    label_phase3: "เฟส 3"
+  },
+  en: {
+    title: "REGISTRY CUSTOMER PORTAL",
+    nav_dash: "📊 Dashboard",
+    search_placeholder: "Customer Code (RG-XXXX)",
+    search_btn: "Search",
+    search_product: "Search product name...",
+    refresh: "Refresh",
+    export: "Export",
+    stat_total: "Total",
+    stat_done: "Completed",
+    stat_pending: "In Progress",
+    th_no: "#",
+    th_product: "Product",
+    th_importer: "Importer / Source",
+    th_phase1: "Phase 1 & Analysis",
+    th_phase2: "Trial & Phase 3",
+    th_note: "Note",
+    th_status: "Status",
+    empty: "Please enter code to view data",
+    loading: "Loading data...",
+    not_found: "Customer code not found",
+    no_results: "No data found",
+    status_done: "✓ Done",
+    status_renew: "♻ Renew",
+    status_pending: "⏳ Processing",
+    status_wait: "Pending",
+    label_phase1: "PHASE 1",
+    label_analysis: "ANALYSIS",
+    label_trial: "TRIAL PLAN",
+    label_phase3: "PHASE 3"
+  }
+};
+
+// --- Language Functions ---
+function toggleLang() {
+  currentLang = currentLang === 'th' ? 'en' : 'th';
+  localStorage.setItem('lang', currentLang);
+  updateUI();
 }
 
+function updateUI() {
+  const t = translations[currentLang];
+  
+  $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
+  $('nav-dashboard').textContent = t.nav_dash;
+  $('access_code').placeholder = t.search_placeholder;
+  $('useCode').textContent = t.search_btn;
+  $('q').placeholder = t.search_product;
+  $('refreshBtn').textContent = t.refresh;
+  $('exportBtn').textContent = t.export;
+
+  const statLabels = document.querySelectorAll('.stat-label');
+  statLabels[0].textContent = t.stat_total;
+  statLabels[1].textContent = t.stat_done;
+  statLabels[2].textContent = t.stat_pending;
+
+  const headers = document.querySelectorAll('th');
+  headers[0].textContent = t.th_no;
+  headers[1].textContent = t.th_product;
+  headers[2].textContent = t.th_importer;
+  headers[3].textContent = t.th_phase1;
+  headers[4].textContent = t.th_phase2;
+  headers[5].textContent = t.th_note;
+  headers[6].textContent = t.th_status;
+
+  if (currentRows.length === 0) {
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">${t.empty}</td></tr>`;
+  } else {
+    renderTable(currentRows);
+  }
+}
+
+// --- Main Logic ---
 async function useAccessCode(inputCode){
   inputCode = inputCode.trim(); if(!inputCode) return;
+  const t = translations[currentLang];
   localStorage.setItem('customer_access_code', inputCode);
-  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดข้อมูล...</td></tr>`;
+  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">${t.loading}</td></tr>`;
 
   try {
     const { data: companies } = await sb.from('companies').select('code, name').or(`code.eq.${inputCode},plain_code.eq.${inputCode}`).limit(1);
@@ -176,9 +279,9 @@ async function useAccessCode(inputCode){
     currentRows = data || [];
     updateStats(currentRows);
     renderTable(currentRows);
-    if(companies?.[0]) $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ทั้งหมด ${data.length} รายการ`;
+    if(companies?.[0]) $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ${currentLang === 'th' ? 'ทั้งหมด' : 'Total'} ${data.length} ${currentLang === 'th' ? 'รายการ' : 'Items'}`;
   } catch(e) {
-    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">ไม่พบข้อมูลรหัสนี้</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">${t.not_found}</td></tr>`;
   }
 }
 
@@ -191,42 +294,43 @@ function updateStats(rows) {
 
 function renderTable(rows){
   const tb = $('tbody');
+  const t = translations[currentLang];
   const q = ($('q').value||'').trim().toLowerCase();
   const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
 
   if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.no_results}</td></tr>`;
     return;
   }
 
   tb.innerHTML = filtered.map((r,i)=> {
     const st = (r.renewed_status || '').trim();
-    let statusBadge = `<span class="badge bg-info">${st || 'รอดำเนินการ'}</span>`;
-    if (st === 'ดำเนินการแล้ว') statusBadge = '<span class="badge bg-success">✓ สำเร็จ</span>';
-    else if (st === 'ต่ออายุ') statusBadge = '<span class="badge bg-pink">♻ ต่ออายุ</span>';
-    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = '<span class="badge bg-warning">⏳ ดำเนินการ</span>';
+    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
+    if (st === 'ดำเนินการแล้ว') statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
+    else if (st === 'ต่ออายุ') statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
+    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
 
     return `
     <tr>
       <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
       <td>
         <div class="trade-name">${r.trade_name}</div>
-        <div style="font-size:12px; color:var(--text-muted)">สามัญ: ${r.common_name || '-'}</div>
+        <div style="font-size:12px; color:var(--text-muted)">${currentLang === 'th' ? 'สามัญ' : 'Common'}: ${r.common_name || '-'}</div>
       </td>
       <td>
         <div style="font-weight:500; font-size:13px;">${r.importer || '-'}</div>
-        <div style="font-size:11px; color:var(--text-muted)">แหล่ง: ${r.manufacturer_source || '-'}</div>
+        <div style="font-size:11px; color:var(--text-muted)">${currentLang === 'th' ? 'แหล่ง' : 'Source'}: ${r.manufacturer_source || '-'}</div>
       </td>
       <td>
         <div class="info-group">
-          <div class="info-item"><span class="label-tag">เฟส 1</span> <span>${r.result_phase1 || '-'}</span></div>
-          <div class="info-item"><span class="label-tag">ผลวิเคราะห์</span> <span>${r.analysis_result || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_phase1}</span> <span>${r.result_phase1 || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_analysis}</span> <span>${r.analysis_result || '-'}</span></div>
         </div>
       </td>
       <td>
         <div class="info-group">
-          <div class="info-item"><span class="label-tag">แผน/ผลทดลอง</span> <span>${r.plan_trial || '-'}</span></div>
-          <div class="info-item"><span class="label-tag">เฟส 3</span> <span>${r.result_phase3 || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_trial}</span> <span>${r.plan_trial || '-'}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_phase3}</span> <span>${r.result_phase3 || '-'}</span></div>
         </div>
       </td>
       <td style="font-size:12px; color:var(--text-muted)">${r.note || '-'}</td>
@@ -235,49 +339,116 @@ function renderTable(rows){
   }).join('');
 }
 
+// --- Events ---
 $('useCode').onclick = () => useAccessCode($('access_code').value);
 $('q').oninput = () => renderTable(currentRows);
 $('refreshBtn').onclick = () => useAccessCode($('access_code').value);
+
+$('exportBtn').onclick = () => {
+  if (currentRows.length === 0) return alert('No data to export');
+  const dataToExport = currentRows.map((r, i) => ({
+    "No": i + 1,
+    "Trade Name": r.trade_name,
+    "Common Name": r.common_name,
+    "Status": r.renewed_status
+  }));
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+  XLSX.writeFile(workbook, `Export_${$('access_code').value}.xlsx`);
+};
+
+// --- Initialization ---
+function init(){
+  updateUI(); 
+  const savedCode = localStorage.getItem('customer_access_code') || '';
+  if(savedCode){ 
+    $('access_code').value = savedCode; 
+    useAccessCode(savedCode); 
+  }
+}
+
 init();
 
-/// --- ฟังก์ชันสำหรับการ Export เป็นไฟล์ Excel (.xlsx) ---
-$('exportBtn').onclick = () => {
-  if (currentRows.length === 0) return alert('ไม่มีข้อมูลให้ Export ครับ');
-
-  const q = ($('q').value||'').trim().toLowerCase();
-  const dataToExport = q ? currentRows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : currentRows;
-
-  // 1. เตรียมข้อมูลในรูปแบบ Array of Objects ให้ตรงกับหัวคอลัมน์ที่ต้องการ
-  const excelData = dataToExport.map((r, i) => ({
-    "ลำดับ": i + 1,
-    "ชื่อการค้า": r.trade_name || '-',
-    "ชื่อสามัญ": r.common_name || '-',
-    "ผู้นำเข้า": r.importer || '-',
-    "แหล่งผลิต": r.manufacturer_source || '-',
-    "ผลเฟส 1": r.result_phase1 || '-',
-    "ผลวิเคราะห์": r.analysis_result || '-',
-    "แผน/ผลทดลอง": r.plan_trial || '-',
-    "ผลเฟส 3": r.result_phase3 || '-',
-    "หมายเหตุ": r.note || '-',
-    "สถานะ": r.renewed_status || 'รอดำเนินการ'
-  }));
-
-  // 2. สร้าง Workbook และ Worksheet
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Registration_Data");
-
-  // 3. ตั้งค่าความกว้างคอลัมน์อัตโนมัติ (Optional)
-  const wscols = [
-    {wch: 6}, {wch: 25}, {wch: 25}, {wch: 20}, {wch: 20}, 
-    {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 30}, {wch: 15}
-  ];
-  worksheet['!cols'] = wscols;
-
-  // 4. สั่งดาวน์โหลดเป็นไฟล์ .xlsx
-  const fileName = `Data_Export_${$('access_code').value || 'Customer'}.xlsx`;
-  XLSX.writeFile(workbook, fileName);
+// --- เพิ่มพจนานุกรมแปลเนื้อหาฐานข้อมูล (Data Dictionary) ---
+const dataMap = {
+  th: {}, // ภาษาไทยใช้ตามจริงใน DB
+  en: {
+    "ผ่าน": "Passed",
+    "ไม่ผ่าน": "Failed",
+    "รอ": "Pending",
+    "อยู่ระหว่างดำเนินการ": "In Progress",
+    "ดำเนินการแล้ว": "Completed",
+    "ต่ออายุ": "Renewal",
+    "ปกติ": "Normal",
+    "ส่งวิเคราะห์": "Sent to Analysis",
+    "ได้รับผลแล้ว": "Results Received",
+    "แผนการทดลอง": "Trial Plan",
+    "ตรวจสอบแล้ว": "Verified",
+    "-": "-"
+  }
 };
+
+// ฟังก์ชันช่วยแปลคำศัพท์ในเนื้อหา
+function autoTranslate(val) {
+  if (!val || currentLang === 'th') return val || '-';
+  let translated = val;
+  // วนลูปเปลี่ยนคำไทยเป็นอังกฤษตาม dictionary
+  Object.keys(dataMap.en).forEach(key => {
+    if (translated.includes(key)) {
+      translated = translated.replace(new RegExp(key, 'g'), dataMap.en[key]);
+    }
+  });
+  return translated;
+}
+
+// --- แก้ไขฟังก์ชัน renderTable ให้เรียกใช้ autoTranslate ---
+function renderTable(rows){
+  const tb = $('tbody');
+  const t = translations[currentLang];
+  const q = ($('q').value||'').trim().toLowerCase();
+  const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
+
+  if(!filtered.length){
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.no_results}</td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = filtered.map((r,i)=> {
+    const st = (r.renewed_status || '').trim();
+    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
+    if (st === 'ดำเนินการแล้ว') statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
+    else if (st === 'ต่ออายุ') statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
+    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+
+    return `
+    <tr>
+      <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
+      <td>
+        <div class="trade-name">${r.trade_name}</div>
+        <div style="font-size:12px; color:var(--text-muted)">${currentLang === 'th' ? 'สามัญ' : 'Common'}: ${r.common_name || '-'}</div>
+      </td>
+      <td>
+        <div style="font-weight:500; font-size:13px;">${autoTranslate(r.importer)}</div>
+        <div style="font-size:11px; color:var(--text-muted)">${currentLang === 'th' ? 'แหล่ง' : 'Source'}: ${autoTranslate(r.manufacturer_source)}</div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">${t.label_phase1}</span> <span>${autoTranslate(r.result_phase1)}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_analysis}</span> <span>${autoTranslate(r.analysis_result)}</span></div>
+        </div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">${t.label_trial}</span> <span>${autoTranslate(r.plan_trial)}</span></div>
+          <div class="info-item"><span class="label-tag">${t.label_phase3}</span> <span>${autoTranslate(r.result_phase3)}</span></div>
+        </div>
+      </td>
+      <td style="font-size:12px; color:var(--text-muted)">${autoTranslate(r.note)}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
