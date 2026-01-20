@@ -81,6 +81,8 @@
   
   .trade-name { color: var(--primary-dark); font-weight: 700; font-size: 15px; margin-bottom: 2px; }
   .empty-state { padding: 60px; text-align: center; color: var(--text-muted); }
+/* เพิ่มในส่วน <style> */
+.bg-danger-light { background: #fef2f2; color: #dc2626; } /* สีแดงสำหรับสถานะยกเลิก */
 </style>
 </head>
 <body>
@@ -184,12 +186,14 @@ const translations = {
     no_results: "ไม่พบข้อมูล",
     status_done: "✓ สำเร็จ",
     status_renew: "♻ ต่ออายุ",
-    status_pending: "⏳ ดำเนินการ",
-    status_wait: "รอดำเนินการ",
+    status_pending: "ดำเนินการขึ้นทะเบียนใหม่",
+    status_wait:"รอดำเนินการ",
     label_phase1: "เฟส 1",
     label_analysis: "ผลวิเคราะห์",
     label_trial: "แผน/ผลทดลอง",
-    label_phase3: "เฟส 3"
+    label_phase3: "เฟส 3",
+    status_cancelled: "✖ ยกเลิกการขึ้นทะเบียน",
+
   },
   en: {
     title: "REGISTRY CUSTOMER PORTAL",
@@ -220,7 +224,8 @@ const translations = {
     label_phase1: "PHASE 1",
     label_analysis: "ANALYSIS",
     label_trial: "TRIAL PLAN",
-    label_phase3: "PHASE 3"
+    label_phase3: "PHASE 3",
+    status_cancelled: "✖ Cancelled",
   }
 };
 
@@ -304,12 +309,18 @@ function renderTable(rows){
   }
 
   tb.innerHTML = filtered.map((r,i)=> {
-    const st = (r.renewed_status || '').trim();
-    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
-    if (st === 'ดำเนินการแล้ว') statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
-    else if (st === 'ต่ออายุ') statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
-    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+   const st = (r.renewed_status || '').trim();
+let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
 
+if (st === 'ดำเนินการแล้ว') {
+    statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
+} else if (st === 'ต่ออายุ') {
+    statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
+} else if (st === 'อยู่ระหว่างดำเนินการ' || st === 'ขึ้นทะเบียนใหม่') {
+    statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+} else if (st.includes('ยกเลิก') || st.includes('ไม่ขึ้นทะเบียน')) { // เพิ่มเงื่อนไขให้ครอบคลุม
+    statusBadge = `<span class="badge bg-danger-light">${currentLang === 'th' ? '✖ ยกเลิก' : '✖ Cancelled'}</span>`;
+}
     return `
     <tr>
       <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
@@ -385,6 +396,8 @@ const dataMap = {
     "ได้รับผลแล้ว": "Results Received",
     "แผนการทดลอง": "Trial Plan",
     "ตรวจสอบแล้ว": "Verified",
+    "ยกเลิก": "Cancelled",
+    "ยกเลิกการขึ้นทะเบียน": "Cancelled",
     "-": "-"
   }
 };
@@ -416,10 +429,23 @@ function renderTable(rows){
 
   tb.innerHTML = filtered.map((r,i)=> {
     const st = (r.renewed_status || '').trim();
-    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
-    if (st === 'ดำเนินการแล้ว') statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
-    else if (st === 'ต่ออายุ') statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
-    else if (st === 'อยู่ระหว่างดำเนินการ') statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+    
+    // --- ส่วนที่แก้ไข Logic การเลือกสี Badge ---
+    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`; // Default: รอดำเนินการ
+
+    if (st === 'ดำเนินการแล้ว') {
+      statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
+    } 
+    else if (st === 'ต่ออายุ') {
+      statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
+    } 
+    else if (st === 'อยู่ระหว่างดำเนินการ' || st === 'ขึ้นทะเบียนใหม่') {
+      statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+    } 
+    // เพิ่มการดักจับสถานะ "ไม่ขึ้นทะเบียน" หรือ "ยกเลิก"
+    else if (st.includes('ไม่ขึ้นทะเบียน') || st.includes('ยกเลิก')) {
+      statusBadge = `<span class="badge" style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca;">${currentLang === 'th' ? '✖ ยกเลิก' : '✖ Cancelled'}</span>`;
+    }
 
     return `
     <tr>
