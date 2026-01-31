@@ -269,9 +269,17 @@ function render() {
 
     // 5. ส่วนประวัติความสำเร็จ
     $('historyArea').innerHTML = dones.length ? dones.map(r => `
-        <div style="padding:15px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
-            <span><strong>${r.trade_name}</strong></span>
-            <span class="badge badge-success">${currentLang==='th'?'สำเร็จ':'DONE'}</span>
+        <div style="padding:16px; border-bottom:1px solid #f0fdf4; display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
+            <div style="flex: 1;">
+                <div style="font-weight:700; color:var(--text-main);">${r.trade_name}</div>
+                <div style="font-size:12px; color:var(--text-sub);">${t.common_label}: ${r.common_name || '-'}</div>
+                <div style="margin-top:8px; font-size:13px; color:#16a34a; font-weight:500;">
+                    <span style="margin-right:8px;">✅ ${currentLang==='th'?'สำเร็จเสร็จสิ้น':'Completed'}</span>
+                </div>
+            </div>
+            <div style="flex: 1; font-size:13px; color:var(--text-sub); background: #f8fafc; padding: 8px; border-radius: 8px;">
+                <strong>${currentLang==='th'?'หมายเหตุ:':'Note:'}</strong> ${r.note || '-'}
+            </div>
         </div>`).join('') : `<div style="text-align:center; padding:20px; color:#94a3b8">${t.no_data}</div>`;
 
     // ซ่อนส่วน "ตรวจพบปัญหา" ด้านล่างถาวร
@@ -285,16 +293,23 @@ function render() {
         }
         $('cancelSection').innerHTML = `
             <div style="font-weight:700; font-size:1.1rem; margin: 3rem 0 1rem; color:var(--text-sub)">📁 รายการที่ยกเลิก/ไม่ขึ้นทะเบียน</div>
-            <div class="card-container" style="background:#f1f5f9; border-style: dashed;">
+            <div class="card-container" style="background:#f8fafc; border-style: dashed;">
                 ${cancels.map(r => `
-                    <div style="padding:15px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; opacity: 0.7;">
-                        <span>${r.trade_name}</span>
-                        <span class="badge badge-cancel">${currentLang==='th'?'ไม่ขึ้นทะเบียน':'Cancelled'}</span>
+                    <div style="padding:16px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start; gap:15px; opacity:0.8;">
+                        <div style="flex: 1;">
+                            <div style="font-weight:700; color:var(--text-sub);">${r.trade_name}</div>
+                            <div style="font-size:12px; color:var(--text-sub);">${t.common_label}: ${r.common_name || '-'}</div>
+                            <div style="margin-top:8px;">
+                                <span class="badge badge-cancel">${currentLang==='th'?'ไม่ขึ้นทะเบียน':'Cancelled'}</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; font-size:13px; color:var(--text-sub); border-left: 2px solid #e2e8f0; padding-left: 12px;">
+                            <strong>${currentLang==='th'?'หมายเหตุ:':'Note:'}</strong> ${r.note || '-'}
+                        </div>
                     </div>`).join('')}
             </div>`;
     } else if($('cancelSection')) { $('cancelSection').innerHTML = ''; }
 }
-
 // --- ฟังก์ชันควบคุม UI ---
 window.setFilter = (f) => {
     activeFilter = f;
