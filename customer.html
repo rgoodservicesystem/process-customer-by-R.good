@@ -19,6 +19,7 @@
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
+    --pink: #db2777;
   }
 
   * { box-sizing: border-box; transition: all 0.2s ease; }
@@ -38,7 +39,7 @@
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem;
   }
 
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
   .stat-box { background: #fff; padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
   .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
 
@@ -57,14 +58,6 @@
   .table-scroll { overflow-x: auto; max-height: 65vh; }
   table { width: 100%; border-collapse: collapse; min-width: 1400px; text-align: left; table-layout: fixed; }
   
-  th:nth-child(1) { width: 50px; }
-  th:nth-child(2) { width: 250px; }
-  th:nth-child(3) { width: 200px; }
-  th:nth-child(4) { width: 220px; }
-  th:nth-child(5) { width: 220px; }
-  th:nth-child(6) { width: 200px; }
-  th:nth-child(7) { width: 160px; }
-
   th { background: #f8fafc; padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
   td { padding: 16px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; word-wrap: break-word; }
   tr:hover td { background-color: #f0f9ff; }
@@ -74,6 +67,7 @@
   .bg-warning { background: #fffbeb; color: #d97706; }
   .bg-pink { background: #fdf2f8; color: #db2777; }
   .bg-info { background: #f0f9ff; color: #0284c7; }
+  .bg-danger-light { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 
   .info-group { display: flex; flex-direction: column; gap: 6px; }
   .info-item { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
@@ -81,8 +75,6 @@
   
   .trade-name { color: var(--primary-dark); font-weight: 700; font-size: 15px; margin-bottom: 2px; }
   .empty-state { padding: 60px; text-align: center; color: var(--text-muted); }
-/* เพิ่มในส่วน <style> */
-.bg-danger-light { background: #fef2f2; color: #dc2626; } /* สีแดงสำหรับสถานะยกเลิก */
 </style>
 </head>
 <body>
@@ -91,7 +83,7 @@
   <div class="header-content">
     <div class="logo">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span id="header-title">REGISTRY CUSTOMER PORTAL</span>
+      <span>REGISTRY CUSTOMER PORTAL</span>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
       <button id="langBtn" class="btn btn-outline" onclick="toggleLang()">🇹🇭 TH</button>
@@ -113,18 +105,11 @@
   </div>
 
   <div id="statsArea" class="stats-grid" style="display: none;">
-    <div class="stat-box">
-      <div id="stat-total" class="stat-val">0</div>
-      <div class="stat-label">ทั้งหมด</div>
-    </div>
-    <div class="stat-box" style="border-bottom: 3px solid var(--success);">
-      <div id="stat-done" class="stat-val" style="color: var(--success);">0</div>
-      <div class="stat-label">สำเร็จแล้ว</div>
-    </div>
-    <div class="stat-box" style="border-bottom: 3px solid var(--warning);">
-      <div id="stat-pending" class="stat-val" style="color: var(--warning);">0</div>
-      <div class="stat-label">กำลังดำเนินการ</div>
-    </div>
+    <div class="stat-box"><div id="stat-total" class="stat-val">0</div><div class="stat-label">ทั้งหมด</div></div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--success);"><div id="stat-done" class="stat-val" style="color: var(--success);">0</div><div class="stat-label">สำเร็จแล้ว</div></div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--warning);"><div id="stat-pending" class="stat-val" style="color: var(--warning);">0</div><div class="stat-label">ขึ้นทะเบียนใหม่</div></div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--pink);"><div id="stat-renewal" class="stat-val" style="color: var(--pink);">0</div><div class="stat-label">ต่ออายุ</div></div>
+    <div class="stat-box" style="border-bottom: 3px solid var(--danger);"><div id="stat-cancel" class="stat-val" style="color: var(--danger);">0</div><div class="stat-label">ไม่ขึ้นทะเบียน</div></div>
   </div>
 
   <div class="table-container">
@@ -132,17 +117,17 @@
       <table>
         <thead>
           <tr>
-            <th style="text-align:center">#</th>
-            <th>ผลิตภัณฑ์</th>
-            <th>ผู้นำเข้า/แหล่งผลิต</th>
-            <th>ขั้นตอน: เฟส 1 & วิเคราะห์</th>
-            <th>ขั้นตอน: ทดลอง & เฟส 3</th>
-            <th>หมายเหตุ</th>
-            <th>สถานะปัจจุบัน</th>
+            <th style="width:50px; text-align:center">#</th>
+            <th style="width:250px">ผลิตภัณฑ์</th>
+            <th style="width:200px">ผู้นำเข้า/แหล่งผลิต</th>
+            <th style="width:220px">ขั้นตอน: เฟส 1 & วิเคราะห์</th>
+            <th style="width:220px">ขั้นตอน: ทดลอง & เฟส 3</th>
+            <th style="width:200px">หมายเหตุ</th>
+            <th style="width:160px">สถานะปัจจุบัน</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="7" class="empty-state" id="initial-msg">กรุณาระบุรหัสเพื่อดูข้อมูล</td></tr>
+          <tr><td colspan="7" class="empty-state">กรุณาระบุรหัสเพื่อดูข้อมูล</td></tr>
         </tbody>
       </table>
     </div>
@@ -151,7 +136,6 @@
 </div>
 
 <script>
-// --- Configuration ---
 const SUPABASE_URL = 'https://vyfjqpwmvjborjrrtpne.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZmpxcHdtdmpib3JqcnJ0cG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMTI4NjcsImV4cCI6MjA3OTg4ODg2N30.pu9ItBYuuQbH53lJmUzPCU2MW67RvCHr2rzhk3UQUw4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -160,141 +144,81 @@ const $ = id => document.getElementById(id);
 let currentRows = [];
 let currentLang = localStorage.getItem('lang') || 'th';
 
-// --- Multi-language Data ---
 const translations = {
   th: {
-    title: "REGISTRY CUSTOMER PORTAL",
-    nav_dash: "📊 ภาพรวมสรุป",
-    search_placeholder: "รหัสลูกค้า (RG-XXXX)",
-    search_btn: "ค้นหาข้อมูล",
-    search_product: "ค้นหาชื่อสินค้า...",
-    refresh: "รีเฟรช",
-    export: "Export",
-    stat_total: "ทั้งหมด",
-    stat_done: "สำเร็จแล้ว",
-    stat_pending: "กำลังดำเนินการ",
-    th_no: "#",
-    th_product: "ผลิตภัณฑ์",
-    th_importer: "ผู้นำเข้า/แหล่งผลิต",
-    th_phase1: "ขั้นตอน: เฟส 1 & วิเคราะห์",
-    th_phase2: "ขั้นตอน: ทดลอง & เฟส 3",
-    th_note: "หมายเหตุ",
-    th_status: "สถานะปัจจุบัน",
-    empty: "กรุณาระบุรหัสเพื่อดูข้อมูล",
-    loading: "กำลังโหลดข้อมูล...",
-    not_found: "ไม่พบข้อมูลรหัสนี้",
-    no_results: "ไม่พบข้อมูล",
-    status_done: "✓ สำเร็จ",
-    status_renew: "♻ ต่ออายุ",
-    status_pending: "ดำเนินการขึ้นทะเบียนใหม่",
-    status_wait:"รอดำเนินการ",
-    label_phase1: "เฟส 1",
-    label_analysis: "ผลวิเคราะห์",
-    label_trial: "แผน/ผลทดลอง",
-    label_phase3: "เฟส 3",
-    status_cancelled: "✖ ยกเลิกการขึ้นทะเบียน",
-
+    nav_dash: "📊 ภาพรวมสรุป", search_placeholder: "รหัสลูกค้า (RG-XXXX)", search_btn: "ค้นหาข้อมูล",
+    stat_total: "ทั้งหมด", stat_done: "สำเร็จแล้ว", stat_pending: "ขึ้นทะเบียนใหม่", stat_renewal: "ต่ออายุ", stat_cancel: "ไม่ขึ้นทะเบียน",
+    status_done: "✓ สำเร็จ", status_renew: "♻ ต่ออายุ", status_pending: "⏳ ขึ้นทะเบียนใหม่", status_wait: "รอดำเนินการ", status_cancelled: "✖ ไม่ขึ้นทะเบียน"
   },
   en: {
-    title: "REGISTRY CUSTOMER PORTAL",
-    nav_dash: "📊 Dashboard",
-    search_placeholder: "Customer Code (RG-XXXX)",
-    search_btn: "Search",
-    search_product: "Search product name...",
-    refresh: "Refresh",
-    export: "Export",
-    stat_total: "Total",
-    stat_done: "Completed",
-    stat_pending: "In Progress",
-    th_no: "#",
-    th_product: "Product",
-    th_importer: "Importer / Source",
-    th_phase1: "Phase 1 & Analysis",
-    th_phase2: "Trial & Phase 3",
-    th_note: "Note",
-    th_status: "Status",
-    empty: "Please enter code to view data",
-    loading: "Loading data...",
-    not_found: "Customer code not found",
-    no_results: "No data found",
-    status_done: "✓ Done",
-    status_renew: "♻ Renew",
-    status_pending: "⏳ Processing",
-    status_wait: "Pending",
-    label_phase1: "PHASE 1",
-    label_analysis: "ANALYSIS",
-    label_trial: "TRIAL PLAN",
-    label_phase3: "PHASE 3",
-    status_cancelled: "✖ Cancelled",
+    nav_dash: "📊 Dashboard", search_placeholder: "Customer Code (RG-XXXX)", search_btn: "Search",
+    stat_total: "Total", stat_done: "Completed", stat_pending: "New Reg.", stat_renewal: "Renewal", stat_cancel: "Not Registered",
+    status_done: "✓ Done", status_renew: "♻ Renew", status_pending: "⏳ New Reg.", status_wait: "Pending", status_cancelled: "✖ Cancelled"
   }
 };
 
-// --- Language Functions ---
+const dataMap = {
+  en: { "ผ่าน": "Passed", "ไม่ผ่าน": "Failed", "รอ": "Pending", "อยู่ระหว่างดำเนินการ": "In Progress", "ดำเนินการแล้ว": "Completed", "ต่ออายุ": "Renewal", "ยกเลิก": "Cancelled", "ไม่ขึ้นทะเบียน": "Not Registered" }
+};
+
+function autoTranslate(val) {
+  if (!val || currentLang === 'th') return val || '-';
+  let translated = val;
+  Object.keys(dataMap.en).forEach(key => {
+    if (translated.includes(key)) translated = translated.replace(new RegExp(key, 'g'), dataMap.en[key]);
+  });
+  return translated;
+}
+
+function updateUI() {
+  const t = translations[currentLang];
+  $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
+  $('nav-dashboard').textContent = t.nav_dash;
+  $('access_code').placeholder = t.search_placeholder;
+  $('useCode').textContent = t.search_btn;
+
+  const labels = document.querySelectorAll('.stat-label');
+  labels[0].textContent = t.stat_total;
+  labels[1].textContent = t.stat_done;
+  labels[2].textContent = t.stat_pending;
+  labels[3].textContent = t.stat_renewal;
+  labels[4].textContent = t.stat_cancel;
+  
+  renderTable(currentRows);
+}
+
 function toggleLang() {
   currentLang = currentLang === 'th' ? 'en' : 'th';
   localStorage.setItem('lang', currentLang);
   updateUI();
 }
 
-function updateUI() {
-  const t = translations[currentLang];
-  
-  $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
-  $('nav-dashboard').textContent = t.nav_dash;
-  $('access_code').placeholder = t.search_placeholder;
-  $('useCode').textContent = t.search_btn;
-  $('q').placeholder = t.search_product;
-  $('refreshBtn').textContent = t.refresh;
-  $('exportBtn').textContent = t.export;
-
-  const statLabels = document.querySelectorAll('.stat-label');
-  statLabels[0].textContent = t.stat_total;
-  statLabels[1].textContent = t.stat_done;
-  statLabels[2].textContent = t.stat_pending;
-
-  const headers = document.querySelectorAll('th');
-  headers[0].textContent = t.th_no;
-  headers[1].textContent = t.th_product;
-  headers[2].textContent = t.th_importer;
-  headers[3].textContent = t.th_phase1;
-  headers[4].textContent = t.th_phase2;
-  headers[5].textContent = t.th_note;
-  headers[6].textContent = t.th_status;
-
-  if (currentRows.length === 0) {
-    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">${t.empty}</td></tr>`;
-  } else {
-    renderTable(currentRows);
-  }
-}
-
-// --- Main Logic ---
 async function useAccessCode(inputCode){
-  inputCode = inputCode.trim(); if(!inputCode) return;
-  const t = translations[currentLang];
+  if(!inputCode.trim()) return;
   localStorage.setItem('customer_access_code', inputCode);
-  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">${t.loading}</td></tr>`;
+  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดข้อมูล...</td></tr>`;
 
   try {
     const { data: companies } = await sb.from('companies').select('code, name').or(`code.eq.${inputCode},plain_code.eq.${inputCode}`).limit(1);
     let targetCode = companies?.[0]?.code || inputCode;
     const { data, error } = await sb.from('product_regs').select('*').eq('company_code', targetCode).order('id');
-    if(error) throw error;
     
     currentRows = data || [];
     updateStats(currentRows);
     renderTable(currentRows);
     if(companies?.[0]) $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ${currentLang === 'th' ? 'ทั้งหมด' : 'Total'} ${data.length} ${currentLang === 'th' ? 'รายการ' : 'Items'}`;
   } catch(e) {
-    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">${t.not_found}</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">ไม่พบข้อมูล</td></tr>`;
   }
 }
 
 function updateStats(rows) {
   $('statsArea').style.display = 'grid';
   $('stat-total').textContent = rows.length;
-  $('stat-done').textContent = rows.filter(r => r.renewed_status === 'ดำเนินการแล้ว').length;
-  $('stat-pending').textContent = rows.filter(r => r.renewed_status === 'อยู่ระหว่างดำเนินการ').length;
+  $('stat-done').textContent = rows.filter(r => (r.renewed_status || '') === 'ดำเนินการแล้ว').length;
+  $('stat-pending').textContent = rows.filter(r => ['ขึ้นทะเบียนใหม่', 'อยู่ระหว่างดำเนินการ'].includes(r.renewed_status)).length;
+  $('stat-renewal').textContent = rows.filter(r => (r.renewed_status || '') === 'ต่ออายุ').length;
+  $('stat-cancel').textContent = rows.filter(r => (r.renewed_status || '').includes('ไม่ขึ้นทะเบียน') || (r.renewed_status || '').includes('ยกเลิก')).length;
 }
 
 function renderTable(rows){
@@ -304,177 +228,48 @@ function renderTable(rows){
   const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
 
   if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.no_results}</td></tr>`;
-    return;
-  }
-
-  tb.innerHTML = filtered.map((r,i)=> {
-   const st = (r.renewed_status || '').trim();
-let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
-
-if (st === 'ดำเนินการแล้ว') {
-    statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
-} else if (st === 'ต่ออายุ') {
-    statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
-} else if (st === 'อยู่ระหว่างดำเนินการ' || st === 'ขึ้นทะเบียนใหม่') {
-    statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
-} else if (st.includes('ยกเลิก') || st.includes('ไม่ขึ้นทะเบียน')) { // เพิ่มเงื่อนไขให้ครอบคลุม
-    statusBadge = `<span class="badge bg-danger-light">${currentLang === 'th' ? '✖ ยกเลิก' : '✖ Cancelled'}</span>`;
-}
-    return `
-    <tr>
-      <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
-      <td>
-        <div class="trade-name">${r.trade_name}</div>
-        <div style="font-size:12px; color:var(--text-muted)">${currentLang === 'th' ? 'สามัญ' : 'Common'}: ${r.common_name || '-'}</div>
-      </td>
-      <td>
-        <div style="font-weight:500; font-size:13px;">${r.importer || '-'}</div>
-        <div style="font-size:11px; color:var(--text-muted)">${currentLang === 'th' ? 'แหล่ง' : 'Source'}: ${r.manufacturer_source || '-'}</div>
-      </td>
-      <td>
-        <div class="info-group">
-          <div class="info-item"><span class="label-tag">${t.label_phase1}</span> <span>${r.result_phase1 || '-'}</span></div>
-          <div class="info-item"><span class="label-tag">${t.label_analysis}</span> <span>${r.analysis_result || '-'}</span></div>
-        </div>
-      </td>
-      <td>
-        <div class="info-group">
-          <div class="info-item"><span class="label-tag">${t.label_trial}</span> <span>${r.plan_trial || '-'}</span></div>
-          <div class="info-item"><span class="label-tag">${t.label_phase3}</span> <span>${r.result_phase3 || '-'}</span></div>
-        </div>
-      </td>
-      <td style="font-size:12px; color:var(--text-muted)">${r.note || '-'}</td>
-      <td>${statusBadge}</td>
-    </tr>`;
-  }).join('');
-}
-
-// --- Events ---
-$('useCode').onclick = () => useAccessCode($('access_code').value);
-$('q').oninput = () => renderTable(currentRows);
-$('refreshBtn').onclick = () => useAccessCode($('access_code').value);
-
-$('exportBtn').onclick = () => {
-  if (currentRows.length === 0) return alert('No data to export');
-  const dataToExport = currentRows.map((r, i) => ({
-    "No": i + 1,
-    "Trade Name": r.trade_name,
-    "Common Name": r.common_name,
-    "Status": r.renewed_status
-  }));
-  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-  XLSX.writeFile(workbook, `Export_${$('access_code').value}.xlsx`);
-};
-
-// --- Initialization ---
-function init(){
-  updateUI(); 
-  const savedCode = localStorage.getItem('customer_access_code') || '';
-  if(savedCode){ 
-    $('access_code').value = savedCode; 
-    useAccessCode(savedCode); 
-  }
-}
-
-init();
-
-// --- เพิ่มพจนานุกรมแปลเนื้อหาฐานข้อมูล (Data Dictionary) ---
-const dataMap = {
-  th: {}, // ภาษาไทยใช้ตามจริงใน DB
-  en: {
-    "ผ่าน": "Passed",
-    "ไม่ผ่าน": "Failed",
-    "รอ": "Pending",
-    "อยู่ระหว่างดำเนินการ": "In Progress",
-    "ดำเนินการแล้ว": "Completed",
-    "ต่ออายุ": "Renewal",
-    "ปกติ": "Normal",
-    "ส่งวิเคราะห์": "Sent to Analysis",
-    "ได้รับผลแล้ว": "Results Received",
-    "แผนการทดลอง": "Trial Plan",
-    "ตรวจสอบแล้ว": "Verified",
-    "ยกเลิก": "Cancelled",
-    "ยกเลิกการขึ้นทะเบียน": "Cancelled",
-    "-": "-"
-  }
-};
-
-// ฟังก์ชันช่วยแปลคำศัพท์ในเนื้อหา
-function autoTranslate(val) {
-  if (!val || currentLang === 'th') return val || '-';
-  let translated = val;
-  // วนลูปเปลี่ยนคำไทยเป็นอังกฤษตาม dictionary
-  Object.keys(dataMap.en).forEach(key => {
-    if (translated.includes(key)) {
-      translated = translated.replace(new RegExp(key, 'g'), dataMap.en[key]);
-    }
-  });
-  return translated;
-}
-
-// --- แก้ไขฟังก์ชัน renderTable ให้เรียกใช้ autoTranslate ---
-function renderTable(rows){
-  const tb = $('tbody');
-  const t = translations[currentLang];
-  const q = ($('q').value||'').trim().toLowerCase();
-  const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
-
-  if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.no_results}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>`;
     return;
   }
 
   tb.innerHTML = filtered.map((r,i)=> {
     const st = (r.renewed_status || '').trim();
-    
-    // --- ส่วนที่แก้ไข Logic การเลือกสี Badge ---
-    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`; // Default: รอดำเนินการ
+    let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
 
-    if (st === 'ดำเนินการแล้ว') {
-      statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
-    } 
-    else if (st === 'ต่ออายุ') {
-      statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
-    } 
-    else if (st === 'อยู่ระหว่างดำเนินการ' || st === 'ขึ้นทะเบียนใหม่') {
-      statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
-    } 
-    // เพิ่มการดักจับสถานะ "ไม่ขึ้นทะเบียน" หรือ "ยกเลิก"
-    else if (st.includes('ไม่ขึ้นทะเบียน') || st.includes('ยกเลิก')) {
-      statusBadge = `<span class="badge" style="background:#fee2e2; color:#ef4444; border:1px solid #fecaca;">${currentLang === 'th' ? '✖ ยกเลิก' : '✖ Cancelled'}</span>`;
-    }
+    if (st === 'ดำเนินการแล้ว') statusBadge = `<span class="badge bg-success">${t.status_done}</span>`;
+    else if (st === 'ต่ออายุ') statusBadge = `<span class="badge bg-pink">${t.status_renew}</span>`;
+    else if (st === 'อยู่ระหว่างดำเนินการ' || st === 'ขึ้นทะเบียนใหม่') statusBadge = `<span class="badge bg-warning">${t.status_pending}</span>`;
+    else if (st.includes('ไม่ขึ้นทะเบียน') || st.includes('ยกเลิก')) statusBadge = `<span class="badge bg-danger-light">${t.status_cancelled}</span>`;
 
     return `
     <tr>
       <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
-      <td>
-        <div class="trade-name">${r.trade_name}</div>
-        <div style="font-size:12px; color:var(--text-muted)">${currentLang === 'th' ? 'สามัญ' : 'Common'}: ${r.common_name || '-'}</div>
-      </td>
-      <td>
-        <div style="font-weight:500; font-size:13px;">${autoTranslate(r.importer)}</div>
-        <div style="font-size:11px; color:var(--text-muted)">${currentLang === 'th' ? 'แหล่ง' : 'Source'}: ${autoTranslate(r.manufacturer_source)}</div>
-      </td>
-      <td>
-        <div class="info-group">
-          <div class="info-item"><span class="label-tag">${t.label_phase1}</span> <span>${autoTranslate(r.result_phase1)}</span></div>
-          <div class="info-item"><span class="label-tag">${t.label_analysis}</span> <span>${autoTranslate(r.analysis_result)}</span></div>
-        </div>
-      </td>
-      <td>
-        <div class="info-group">
-          <div class="info-item"><span class="label-tag">${t.label_trial}</span> <span>${autoTranslate(r.plan_trial)}</span></div>
-          <div class="info-item"><span class="label-tag">${t.label_phase3}</span> <span>${autoTranslate(r.result_phase3)}</span></div>
-        </div>
-      </td>
+      <td><div class="trade-name">${r.trade_name}</div><div style="font-size:12px; color:var(--text-muted)">${r.common_name || '-'}</div></td>
+      <td><div style="font-weight:500; font-size:13px;">${autoTranslate(r.importer)}</div><div style="font-size:11px; color:var(--text-muted)">${autoTranslate(r.manufacturer_source)}</div></td>
+      <td><div class="info-group"><div class="info-item"><span class="label-tag">เฟส 1</span> <span>${autoTranslate(r.result_phase1)}</span></div><div class="info-item"><span class="label-tag">วิเคราะห์</span> <span>${autoTranslate(r.analysis_result)}</span></div></div></td>
+      <td><div class="info-group"><div class="info-item"><span class="label-tag">ทดลอง</span> <span>${autoTranslate(r.plan_trial)}</span></div><div class="info-item"><span class="label-tag">เฟส 3</span> <span>${autoTranslate(r.result_phase3)}</span></div></div></td>
       <td style="font-size:12px; color:var(--text-muted)">${autoTranslate(r.note)}</td>
       <td>${statusBadge}</td>
     </tr>`;
   }).join('');
 }
+
+$('useCode').onclick = () => useAccessCode($('access_code').value);
+$('q').oninput = () => renderTable(currentRows);
+$('refreshBtn').onclick = () => useAccessCode($('access_code').value);
+$('exportBtn').onclick = () => {
+  const dataToExport = currentRows.map((r, i) => ({ "No": i + 1, "Trade Name": r.trade_name, "Status": r.renewed_status }));
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+  XLSX.writeFile(workbook, `Export.xlsx`);
+};
+
+window.onload = () => {
+  updateUI();
+  const savedCode = localStorage.getItem('customer_access_code');
+  if(savedCode) { $('access_code').value = savedCode; useAccessCode(savedCode); }
+};
 </script>
 </body>
 </html>
