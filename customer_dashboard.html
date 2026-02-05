@@ -53,23 +53,16 @@
   .badge-success { background: #f0fdf4; color: #16a34a; }
 
   .btn-outline { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; font-weight: 600; font-size: 14px; text-decoration: none; color: var(--text-main); display: inline-flex; align-items: center; gap: 8px; }
-/* เพิ่มเติม Skill ด้าน UI: ปรับการ์ดสถิติให้ดูพรีเมียมขึ้น */
-  .stat-card {
-    position: relative;
-    overflow: hidden;
-  }
-  .stat-card::before {
-    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-  }
+
+  .stat-card { position: relative; overflow: hidden; }
+  .stat-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
   .card-all::before { background: var(--primary); }
   .card-done::before { background: var(--success); }
   .card-active::before { background: var(--secondary); }
   .card-cancel::before { background: var(--danger); }
 
-  /* เพิ่มสถานะ Badge สำหรับรายการยกเลิก */
   .badge-cancel { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
   
-  /* ปรับ Progress Bar ให้ดูมีมิติ */
   .progress-fill {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     background-image: linear-gradient(90deg, rgba(255,255,255,0.15) 25%, transparent 25%);
@@ -103,26 +96,24 @@
 
     <div id="txt-milestone-title" style="font-weight:700; margin-bottom:12px; font-size:14px; color:var(--text-sub)">🎯 ติดตามงานตามรายขั้นตอน:</div>
     <div class="tabs" id="tabBar">
-    <button class="tab-btn active" onclick="setFilter('all')" id="tab-all">🌈 ทั้งหมด</button>
-    <button class="tab-btn" onclick="setFilter('start')" id="tab-1">1. เริ่มต้น</button>
-    <button class="tab-btn" onclick="setFilter('phase1')" id="tab-2">2. เฟส 1</button>
-    <button class="tab-btn" onclick="setFilter('analysis')" id="tab-3">3. ผลวิเคราะห์</button>
-    <button class="tab-btn" onclick="setFilter('trial')" id="tab-4">4. ผลทดลอง</button>
-    <button class="tab-btn" onclick="setFilter('phase3')" id="tab-5">5. เฟส 3</button>
-    <button class="tab-btn" onclick="setFilter('fail')" id="tab-fail" style="border-color: var(--danger); color: var(--danger);">❌ พบปัญหา</button>
-</div>
+      <button class="tab-btn active" onclick="setFilter('all')" id="tab-all">🌈 ทั้งหมด</button>
+      <button class="tab-btn" onclick="setFilter('start')" id="tab-1">1. เริ่มต้น</button>
+      <button class="tab-btn" onclick="setFilter('phase1')" id="tab-2">2. เฟส 1</button>
+      <button class="tab-btn" onclick="setFilter('analysis')" id="tab-3">3. ผลวิเคราะห์</button>
+      <button class="tab-btn" onclick="setFilter('trial')" id="tab-4">4. ผลทดลอง</button>
+      <button class="tab-btn" onclick="setFilter('phase3')" id="tab-5">5. เฟส 3</button>
+      <button class="tab-btn" onclick="setFilter('fail')" id="tab-fail" style="border-color: var(--danger); color: var(--danger);">❌ พบปัญหา</button>
+    </div>
   </div>
 
   <div id="contentArea" style="display:none">
-    <div class="stats-grid" id="statsArea"></div>
-    
     <div id="txt-section-progress" style="font-weight:700; font-size:1.25rem; margin: 2rem 0 1.5rem">📊 ความคืบหน้างานปัจจุบัน</div>
     <div class="card-container" style="overflow-x: auto;">
       <table>
         <thead>
           <tr>
-            <th style="width: 30%" id="th-product">รายการสินค้า</th>
-            <th style="width: 40%" id="th-step">ขั้นตอนล่าสุด</th>
+            <th style="width: 35%" id="th-product">รายการสินค้า</th>
+            <th style="width: 35%" id="th-step">สถานะล่าสุด</th>
             <th id="th-note">หมายเหตุ</th>
           </tr>
         </thead>
@@ -132,15 +123,6 @@
 
     <div id="txt-section-done" style="font-weight:700; font-size:1.1rem; margin: 3rem 0 1rem; color:var(--success)">✅ ดำเนินการสำเร็จเสร็จสิ้น</div>
     <div class="card-container" id="historyArea" style="background:#f0fdf422;"></div>
-
-    <div id="failSection" style="display:none">
-      <div id="txt-section-fail" style="font-weight:700; font-size:1.1rem; margin: 3rem 0 1rem; color:var(--danger)">❌ รายการที่พบปัญหา (โปรดตรวจสอบ)</div>
-      <div class="card-container" style="border-color:var(--danger)">
-        <table style="background:#fffafa">
-          <tbody id="failTbody"></tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -156,6 +138,15 @@ let currentLang = localStorage.getItem('lang') || 'th';
 
 // --- Helper Functions ---
 function hasVal(v){ return v && String(v).trim() !== '' && String(v).trim() !== '-'; }
+
+// ฟังก์ชันดึงข้อความจริงจาก DB
+function getActualStatusText(r, t) {
+    if (hasVal(r.result_phase3)) return r.result_phase3;
+    if (hasVal(r.plan_trial)) return r.plan_trial;
+    if (hasVal(r.analysis_result)) return r.analysis_result;
+    if (hasVal(r.result_phase1)) return r.result_phase1;
+    return t.step_start;
+}
 
 function getMilestone(r) {
     if (hasVal(r.result_phase3)) return { pct: 95, key: 'phase3' };
@@ -178,14 +169,12 @@ const translations = {
     th: {
         brand: "CUSTOMER DASHBOARD", nav_portal: "📋 รายละเอียดข้อมูล",
         tab_all: "🌈 ทั้งหมด", tab_1: "1. เริ่มต้น", tab_2: "2. เฟส 1", tab_3: "3. ผลวิเคราะห์", tab_4: "4. ผลทดลอง", tab_5: "5. เฟส 3",
-        step_start: "เริ่มต้นยื่นคำขอ", step_phase1: "เฟส 1 ผ่าน", step_analysis: "ผลวิเคราะห์ผ่าน", step_trial: "ผลทดลองผ่าน", step_phase3: "เฟส 3 ผ่าน",
-        common_label: "สามัญ", no_data: "ไม่พบข้อมูล"
+        step_start: "เริ่มต้นยื่นคำขอ", common_label: "สามัญ", no_data: "ไม่พบข้อมูล"
     },
     en: {
         brand: "CUSTOMER DASHBOARD", nav_portal: "📋 Detailed View",
         tab_all: "🌈 All Items", tab_1: "1. Started", tab_2: "2. Phase 1", tab_3: "3. Analysis", tab_4: "4. Trial", tab_5: "5. Phase 3",
-        step_start: "Started", step_phase1: "Phase 1", step_analysis: "Analysis", step_trial: "Trial", step_phase3: "Phase 3",
-        common_label: "Common Name", no_data: "No Data"
+        step_start: "Started", common_label: "Common Name", no_data: "No Data"
     }
 };
 
@@ -193,11 +182,8 @@ function render() {
     const t = translations[currentLang];
     const q = ($('q_product').value || '').trim().toLowerCase();
 
-    // 1. แบ่งกลุ่มข้อมูลพื้นฐาน
     const isCancelled = r => (r.renewed_status || '').includes('ยกเลิก') || (r.renewed_status || '').includes('ไม่ขึ้นทะเบียน');
     const isDone = r => !isCancelled(r) && (r.renewed_status === 'ดำเนินการแล้ว' || r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่');
-    
-    // งานปัจจุบัน (Active) = ไม่สำเร็จ และ ไม่ถูกยกเลิก (รวมรายการที่มีปัญหาด้วย)
     const isActive = r => !isCancelled(r) && !isDone(r);
 
     let filtered = globalData;
@@ -214,9 +200,8 @@ function render() {
     const fails = actives.filter(r => getFailStepName(r, t) !== null || String(r.note || '').includes('❌'));
     const normalActives = actives.filter(r => !fails.includes(r));
 
-    // 2. นับจำนวนตัวเลขบนปุ่ม (Tabs)
+    // นับเลข Tab
     $('tab-all').innerHTML = `${t.tab_all} <small>(${actives.length})</small>`;
-    
     const countNormalInStep = (key) => normalActives.filter(r => getMilestone(r).key === key).length;
     $('tab-1').innerHTML = `${t.tab_1} <small>(${countNormalInStep('start')})</small>`;
     $('tab-2').innerHTML = `${t.tab_2} <small>(${countNormalInStep('phase1')})</small>`;
@@ -225,26 +210,25 @@ function render() {
     $('tab-5').innerHTML = `${t.tab_5} <small>(${countNormalInStep('phase3')})</small>`;
     $('tab-fail').innerHTML = `${currentLang==='th'?'พบปัญหา':'Issues'} <small>(${fails.length})</small>`;
 
-    // 3. กรองแถวที่จะแสดงในตาราง
     let displayRows = [];
     if (activeFilter === 'fail') {
         displayRows = fails;
     } else if (activeFilter === 'all') {
         displayRows = actives;
-        // เรียงให้ตัวปกติอยู่บน ตัวปัญหาย้ายไปอยู่ข้างล่างในหน้า "ทั้งหมด"
         displayRows.sort((a, b) => (fails.includes(a) ? 1 : 0) - (fails.includes(b) ? 1 : 0));
     } else {
-        // แท็บขั้นตอนเฉพาะ: แสดงเฉพาะรายการปกติที่อยู่ในขั้นตอนนี้
         displayRows = normalActives.filter(r => getMilestone(r).key === activeFilter);
     }
 
-    // 4. วาดตารางหลัก
     $('mainTbody').innerHTML = displayRows.map(r => {
         const ms = getMilestone(r);
         const failName = getFailStepName(r, t);
         const isFail = fails.includes(r);
-        const isRenew = (r.renewed_status || '').includes('ต่ออายุ');
         
+        // ดึงข้อความจริงมาแสดง (ถ้า Fail ให้บอกว่ารอแก้ไข ถ้าปกติให้ดึงคำจากช่องเฟสนั้นๆ)
+        const statusText = isFail ? '⚠️ รอการแก้ไข' : getActualStatusText(r, t);
+        
+        const isRenew = (r.renewed_status || '').includes('ต่ออายุ');
         const statusColor = isFail ? 'var(--danger)' : (isRenew ? '#ff69b4' : 'var(--primary)');
         const bgColor = isFail ? '#fff1f2' : (isRenew ? '#fff1f8' : 'transparent');
 
@@ -253,11 +237,11 @@ function render() {
                 <div style="font-weight:700;">${r.trade_name}</div>
                 <div style="font-size:12px; color:var(--text-sub)">${t.common_label}: ${r.common_name || '-'}</div>
                 <div style="font-size:11px; color:${statusColor}; font-weight:700; background:${bgColor}; display:inline-block; padding:2px 6px; border-radius:4px; margin-top:4px;">
-                    ${isFail ? '⚠️ ติดที่: ' + failName : (r.renewed_status || 'ขึ้นทะเบียนใหม่')}
+                    ${isFail ? 'ติดที่: ' + failName : (r.renewed_status || 'ขึ้นทะเบียนใหม่')}
                 </div>
             </td>
             <td>
-                <span class="status-label" style="color:${statusColor}">${isFail ? 'รอการแก้ไข' : (t['step_'+ms.key] || ms.lab)}</span>
+                <span class="status-label" style="color:${statusColor}">${statusText}</span>
                 <div class="progress-bg"><div class="progress-fill" style="width:${ms.pct}%; background:${statusColor}"></div></div>
                 <div style="text-align:right; font-size:10px; margin-top:4px; font-weight:700; color:${statusColor}">${ms.pct}%</div>
             </td>
@@ -267,7 +251,7 @@ function render() {
         </tr>`;
     }).join('') || `<tr><td colspan="3" style="text-align:center; padding:40px;">${t.no_data}</td></tr>`;
 
-    // 5. ส่วนประวัติความสำเร็จ
+    // History Area
     $('historyArea').innerHTML = dones.length ? dones.map(r => `
         <div style="padding:16px; border-bottom:1px solid #f0fdf4; display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
             <div style="flex: 1;">
@@ -282,10 +266,7 @@ function render() {
             </div>
         </div>`).join('') : `<div style="text-align:center; padding:20px; color:#94a3b8">${t.no_data}</div>`;
 
-    // ซ่อนส่วน "ตรวจพบปัญหา" ด้านล่างถาวร
-    $('failSection').style.display = 'none';
-
-    // 6. ส่วนรายการยกเลิก
+    // Cancel Section
     if(cancels.length > 0) {
         if(!$('cancelSection')) {
             const div = document.createElement('div'); div.id = 'cancelSection';
@@ -299,18 +280,16 @@ function render() {
                         <div style="flex: 1;">
                             <div style="font-weight:700; color:var(--text-sub);">${r.trade_name}</div>
                             <div style="font-size:12px; color:var(--text-sub);">${t.common_label}: ${r.common_name || '-'}</div>
-                            <div style="margin-top:8px;">
-                                <span class="badge badge-cancel">${currentLang==='th'?'ไม่ขึ้นทะเบียน':'Cancelled'}</span>
-                            </div>
+                            <div style="margin-top:8px;"><span class="badge badge-cancel">${currentLang==='th'?'ไม่ขึ้นทะเบียน':'Cancelled'}</span></div>
                         </div>
                         <div style="flex: 1; font-size:13px; color:var(--text-sub); border-left: 2px solid #e2e8f0; padding-left: 12px;">
-                            <strong>${currentLang==='th'?'หมายเหตุ:':'Note:'}</strong> ${r.note || '-'}
+                            <strong>หมายเหตุ:</strong> ${r.note || '-'}
                         </div>
                     </div>`).join('')}
             </div>`;
     } else if($('cancelSection')) { $('cancelSection').innerHTML = ''; }
 }
-// --- ฟังก์ชันควบคุม UI ---
+
 window.setFilter = (f) => {
     activeFilter = f;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -338,7 +317,7 @@ function updateUI() {
     $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
     $('txt-brand').textContent = t.brand;
     $('txt-nav-portal').textContent = t.nav_portal;
-    $('access_code').placeholder = translations[currentLang].placeholder;
+    $('access_code').placeholder = "กรอกรหัสลูกค้า (RG-XXXX)...";
     $('q_product').placeholder = "🔍 ค้นหาชื่อการค้า...";
     $('btnLoad').textContent = "ดึงข้อมูล";
     $('txt-milestone-title').textContent = "🎯 ติดตามงานตามรายขั้นตอน:";
