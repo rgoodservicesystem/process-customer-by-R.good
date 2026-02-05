@@ -18,6 +18,8 @@
     --success-text: #059669;
     --danger: #fecaca; 
     --danger-text: #e11d48;
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
   }
   * { box-sizing: border-box; font-family: 'Prompt', sans-serif; transition: all 0.2s ease; }
   body { background: var(--bg); color: var(--text-main); margin: 0; padding-bottom: 80px; }
@@ -33,7 +35,7 @@
   .card-all::before { background: var(--primary); }
   .card-active::before { background: #e2e8f0; }
   .card-done::before { background: var(--success); }
-  .card-fail::before { background: var(--danger); }
+  .card-fail::before { background: #fbbf24; }
   .card-cancel::before { background: #cbd5e1; }
 
   .stat-value { font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
@@ -95,7 +97,7 @@
       <button class="tab-btn" onclick="setFilter('analysis')" id="tab-3">3. ผลวิเคราะห์</button>
       <button class="tab-btn" onclick="setFilter('trial')" id="tab-4">4. ผลทดลอง</button>
       <button class="tab-btn" onclick="setFilter('phase3')" id="tab-5">5. เฟส 3</button>
-      <button class="tab-btn" onclick="setFilter('fail')" id="tab-fail" style="border-color: var(--danger); color: var(--danger-text);">❌ พบปัญหา</button>
+      <button class="tab-btn" onclick="setFilter('fail')" id="tab-fail" style="border-color: #fbbf24; color: #92400e;">❌ พบปัญหา</button>
     </div>
   </div>
 
@@ -158,7 +160,6 @@ function getFailStepName(r, t) {
     return null;
 }
 
-// เพิ่มคำแปลในส่วนที่ขาดหายไป
 const translations = {
     th: {
         brand: "CUSTOMER DASHBOARD", nav_portal: "📋 รายละเอียดข้อมูล",
@@ -167,7 +168,7 @@ const translations = {
         btn_load: "ดึงข้อมูล", search_placeholder: "กรอกรหัสลูกค้า (RG-XXXX)...", search_trade: "🔍 ค้นหาชื่อการค้า...", milestone_title: "🎯 ติดตามงานตามรายขั้นตอน:",
         stat_all: "ทั้งหมด", stat_active: "กำลังดำเนินการ", stat_done: "สำเร็จ", stat_fail: "พบปัญหา", stat_cancel: "ยกเลิก",
         pending_fix: "⚠️ รอเจ้าหน้าที่ตรวจ", section_progress: "📊 ความคืบหน้างานปัจจุบัน", section_done: "✅ ดำเนินการสำเร็จเสร็จสิ้น", section_cancel: "📁 รายการที่ยกเลิก/ไม่ขึ้นทะเบียน",
-        renew_label: "ต่ออายุ", new_reg: "ขึ้นทะเบียนใหม่"
+        renew_label: "ต่ออายุ", new_reg: "ขึ้นทะเบียนใหม่", need_fix: "ต้องแก้ไข"
     },
     en: {
         brand: "CUSTOMER DASHBOARD", nav_portal: "📋 Detailed View",
@@ -176,7 +177,7 @@ const translations = {
         btn_load: "Load Data", search_placeholder: "Enter Customer Code (RG-XXXX)...", search_trade: "🔍 Search Trade Name...", milestone_title: "🎯 Track progress by step:",
         stat_all: "All", stat_active: "Pending", stat_done: "Success", stat_fail: "Issues", stat_cancel: "Cancelled",
         pending_fix: "⚠️ Pending Fix", section_progress: "📊 Current Progress", section_done: "✅ Completed Tasks", section_cancel: "📁 Cancelled / Non-Registered Items",
-        renew_label: "Renewal", new_reg: "New Registration"
+        renew_label: "Renewal", new_reg: "New Registration", need_fix: "Need Fix"
     }
 };
 
@@ -184,7 +185,6 @@ function render() {
     const t = translations[currentLang];
     const q = ($('q_product').value || '').trim().toLowerCase();
 
-    // 1. แยกกลุ่มข้อมูล
     const isCancelled = r => (r.renewed_status || '').includes('ยกเลิก') || (r.renewed_status || '').includes('ไม่ขึ้นทะเบียน');
     const isDone = r => !isCancelled(r) && (r.renewed_status === 'ดำเนินการแล้ว' || r.renewed_status === 'เปลี่ยนแหล่งผลิตใหม่');
     const isActive = r => !isCancelled(r) && !isDone(r);
@@ -200,12 +200,9 @@ function render() {
     const actives = filtered.filter(isActive);
     const dones = filtered.filter(isDone);
     const cancels = filtered.filter(isCancelled);
-    
-    // ค้นหารายการที่ติดปัญหา (มี ❌ หรือ ไม่ผ่าน)
     const fails = actives.filter(r => getFailStepName(r, t) !== null || String(r.note || '').includes('❌'));
     const normalActives = actives.filter(r => !fails.includes(r));
 
-    // 2. อัปเดตสถิติ (Stats Area)
     $('statsArea').innerHTML = `
         <div class="stat-card card-all"><div class="stat-value">${filtered.length}</div><div class="stat-label">${t.stat_all}</div></div>
         <div class="stat-card card-active"><div class="stat-value">${actives.length}</div><div class="stat-label">${t.stat_active}</div></div>
@@ -214,7 +211,6 @@ function render() {
         <div class="stat-card card-cancel"><div class="stat-value" style="color:#64748b">${cancels.length}</div><div class="stat-label">${t.stat_cancel}</div></div>
     `;
 
-    // 3. จัดการปุ่ม Filter (Tabs)
     $('tab-all').innerHTML = `${t.tab_all} <small>(${actives.length})</small>`;
     const countNormalInStep = (key) => normalActives.filter(r => getMilestone(r).key === key).length;
     $('tab-1').innerHTML = `${t.tab_1} <small>(${countNormalInStep('start')})</small>`;
@@ -224,7 +220,6 @@ function render() {
     $('tab-5').innerHTML = `${t.tab_5} <small>(${countNormalInStep('phase3')})</small>`;
     $('tab-fail').innerHTML = `${currentLang==='th'?'พบปัญหา':'Issues'} <small>(${fails.length})</small>`;
 
-    // 4. เลือกข้อมูลที่จะแสดงในตารางหลักตาม Filter
     let displayRows = [];
     if (activeFilter === 'fail') {
         displayRows = fails;
@@ -235,56 +230,65 @@ function render() {
         displayRows = normalActives.filter(r => getMilestone(r).key === activeFilter);
     }
 
-    // 5. วาดตารางความคืบหน้า (Main Table)
-   // --- ส่วนที่ปรับปรุงใหม่ใน Badge ---
-// --- ส่วนที่ปรับปรุงใหม่: แสดงขั้นตอนหลัก + เหตุผลสีเทาด้านล่าง ---
-$('mainTbody').innerHTML = displayRows.map(r => {
-    const ms = getMilestone(r);
-    const failStep = getFailStepName(r, t); 
-    const isFail = fails.includes(r);
-    const st = r.renewed_status || '';
-    const custMsg = (r.customer_message || '').trim();
+    $('mainTbody').innerHTML = displayRows.map(r => {
+        const ms = getMilestone(r);
+        const failStep = getFailStepName(r, t); 
+        const isFail = fails.includes(r);
+        const st = r.renewed_status || '';
+        const custMsg = (r.customer_message || '').trim();
 
-    // 1. ดึงข้อความจากช่องที่ "ไม่ผ่าน" มาโชว์เป็นเหตุผลสีเทา
-    let failReason = "";
-    if (isFail) {
-        // เช็คไล่ลำดับจากขั้นตอนท้ายสุดมาหน้าสุด เพื่อหาข้อความล่าสุดที่ติดปัญหา
-        if (String(r.result_phase3 || '').includes('❌') || String(r.result_phase3 || '').includes('ไม่ผ่าน')) failReason = r.result_phase3;
-        else if (String(r.plan_trial || '').includes('❌') || String(r.plan_trial || '').includes('ไม่ผ่าน')) failReason = r.plan_trial;
-        else if (String(r.analysis_result || '').includes('❌') || String(r.analysis_result || '').includes('ไม่ผ่าน')) failReason = r.analysis_result;
-        else if (String(r.result_phase1 || '').includes('❌') || String(r.result_phase1 || '').includes('ไม่ผ่าน')) failReason = r.result_phase1;
-    }
+        let failReason = "";
+        if (isFail) {
+            if (String(r.result_phase3 || '').includes('❌') || String(r.result_phase3 || '').includes('ไม่ผ่าน')) failReason = r.result_phase3;
+            else if (String(r.plan_trial || '').includes('❌') || String(r.plan_trial || '').includes('ไม่ผ่าน')) failReason = r.plan_trial;
+            else if (String(r.analysis_result || '').includes('❌') || String(r.analysis_result || '').includes('ไม่ผ่าน')) failReason = r.analysis_result;
+            else if (String(r.result_phase1 || '').includes('❌') || String(r.result_phase1 || '').includes('ไม่ผ่าน')) failReason = r.result_phase1;
+        }
 
-    // 2. จัดการ Badge (ข้อความแอดมินมาแทนที่ชื่อประเภทงาน)
-    let badgeText = (custMsg && custMsg !== '-') ? custMsg : (isFail ? (currentLang==='th'?'ต้องแก้ไข':'Need Fix') : (st.includes('ต่ออายุ') ? t.renew_label : t.new_reg));
-    let badgeBg = isFail ? "var(--danger)" : (st.includes('ต่ออายุ') ? "var(--secondary)" : ((custMsg && custMsg !== '-') ? "#e0f2fe" : "#f1f5f9"));
-    let badgeColor = isFail ? "var(--danger-text)" : (st.includes('ต่ออายุ') ? "var(--secondary-dark)" : ((custMsg && custMsg !== '-') ? "#0369a1" : "var(--text-sub)"));
+        // --- ตั้งค่า Badge ตามคอนเซปต์สีพาสเทลแยกประเภท ---
+        let badgeText = (custMsg && custMsg !== '-') ? custMsg : (isFail ? t.need_fix : (st.includes('ต่ออายุ') ? t.renew_label : t.new_reg));
+        let badgeBg = "#f1f5f9"; 
+        let badgeColor = "var(--text-sub)";
 
-    return `<tr>
-        <td>
-            <div style="font-weight:700;">${r.trade_name}</div>
-            <div style="font-size:12px; color:var(--text-sub)">${t.common_label}: ${r.common_name || '-'}</div>
-            <div class="badge-pastel" style="background:${badgeBg}; color:${badgeColor}">
-                ${badgeText}
-            </div>
-        </td>
-        <td>
-            <span class="status-label" style="color:${isFail ? 'var(--danger-text)' : 'var(--text-main)'}; margin-bottom: 2px;">
-                ${isFail ? '⚠️ ' + (failStep || t.pending_fix) : getActualStatusText(r, t)}
-            </span>
-            
-            ${isFail && failReason ? `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-style: italic; line-height: 1.2;">${failReason}</div>` : ''}
-            
-            <div class="progress-bg"><div class="progress-fill" style="width:${ms.pct}%; background:${isFail ? 'var(--danger-text)' : 'var(--primary-dark)'}"></div></div>
-            <div style="text-align:right; font-size:10px; margin-top:4px; font-weight:700; color:var(--text-sub)">${ms.pct}%</div>
-        </td>
-        <td style="font-size:13px; color:var(--text-sub);">
-            ${r.note || '-'}
-        </td>
-    </tr>`;
-}).join('');
+        if (badgeText.includes("รอเจ้าหน้าที่ตรวจเอกสาร")) {
+            badgeBg = "#d1fae5";    // เขียวมิ้นต์อ่อน
+            badgeColor = "#065f46"; // เขียวเข้ม
+        } else if (badgeText.includes("รอเอกสารเพิ่มเติม")) {
+            badgeBg = "#fee2e2";    // แดงอ่อนพาสเทล
+            badgeColor = "#991b1b"; // แดงเข้ม
+        } else if (isFail) {
+            badgeBg = "var(--warning-bg)"; 
+            badgeColor = "var(--warning-text)";
+        } else if (st.includes('ต่ออายุ')) {
+            badgeBg = "var(--secondary)"; 
+            badgeColor = "var(--secondary-dark)";
+        } else if (custMsg && custMsg !== '-') {
+            badgeBg = "#e0f2fe"; 
+            badgeColor = "#0369a1";
+        }
 
-    // 6. วาดตารางประวัติงานที่สำเร็จ (History Area)
+        return `<tr>
+            <td>
+                <div style="font-weight:700;">${r.trade_name}</div>
+                <div style="font-size:12px; color:var(--text-sub)">${t.common_label}: ${r.common_name || '-'}</div>
+                <div class="badge-pastel" style="background:${badgeBg}; color:${badgeColor}">
+                    ${badgeText}
+                </div>
+            </td>
+            <td>
+                <span class="status-label" style="color:${isFail ? 'var(--warning-text)' : 'var(--text-main)'}; margin-bottom: 2px;">
+                    ${isFail ? '⚠️ ' + (failStep || t.pending_fix) : getActualStatusText(r, t)}
+                </span>
+                ${isFail && failReason ? `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-style: italic; line-height: 1.2;">${failReason}</div>` : ''}
+                <div class="progress-bg"><div class="progress-fill" style="width:${ms.pct}%; background:${isFail ? '#fbbf24' : 'var(--primary-dark)'}"></div></div>
+                <div style="text-align:right; font-size:10px; margin-top:4px; font-weight:700; color:var(--text-sub)">${ms.pct}%</div>
+            </td>
+            <td style="font-size:13px; color:var(--text-sub);">
+                ${r.note || '-'}
+            </td>
+        </tr>`;
+    }).join('');
+
     $('historyArea').innerHTML = dones.length ? dones.map(r => `
         <div style="padding:16px; border-bottom:1px solid #f0fdf4; display:flex; justify-content:space-between; align-items:center;">
             <div>
@@ -294,7 +298,7 @@ $('mainTbody').innerHTML = displayRows.map(r => {
             </div>
             <div style="font-size:12px; color:var(--text-sub); text-align:right;">${r.note || '-'}</div>
         </div>`).join('') : `<div style="text-align:center; padding:20px; color:#94a3b8">${t.no_data}</div>`;
-    // 7. ส่วนงานที่ยกเลิก
+
     if(cancels.length > 0) {
         if(!$('cancelSection')) {
             const div = document.createElement('div'); div.id = 'cancelSection';
@@ -315,6 +319,7 @@ $('mainTbody').innerHTML = displayRows.map(r => {
             </div>`;
     } else if($('cancelSection')) { $('cancelSection').innerHTML = ''; }
 }
+
 window.setFilter = (f) => {
     activeFilter = f;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
