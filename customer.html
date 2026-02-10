@@ -144,29 +144,48 @@ const $ = id => document.getElementById(id);
 let currentRows = [];
 let currentLang = localStorage.getItem('lang') || 'th';
 
+// 1. เพิ่มคำศัพท์ที่พบบ่อยในฐานข้อมูล
 const translations = {
   th: {
     nav_dash: "📊 ภาพรวมสรุป", search_placeholder: "รหัสลูกค้า (RG-XXXX)", search_btn: "ค้นหาข้อมูล",
     stat_total: "ทั้งหมด", stat_done: "สำเร็จแล้ว", stat_pending: "ขึ้นทะเบียนใหม่", stat_renewal: "ต่ออายุ", stat_cancel: "ไม่ขึ้นทะเบียน",
-    status_done: "✓ สำเร็จ", status_renew: "♻ ต่ออายุ", status_pending: "⏳ ขึ้นทะเบียนใหม่", status_wait: "รอดำเนินการ", status_cancelled: "✖ ไม่ขึ้นทะเบียน"
+    status_done: "✓ สำเร็จ", status_renew: "♻ ต่ออายุ", status_pending: "⏳ ขึ้นทะเบียนใหม่", status_wait: "รอดำเนินการ", status_cancelled: "✖ ไม่ขึ้นทะเบียน",
+    col_phase1: "เฟส 1", col_analysis: "วิเคราะห์", col_trial: "ทดลอง", col_phase3: "เฟส 3"
   },
   en: {
     nav_dash: "📊 Dashboard", search_placeholder: "Customer Code (RG-XXXX)", search_btn: "Search",
     stat_total: "Total", stat_done: "Completed", stat_pending: "New Reg.", stat_renewal: "Renewal", stat_cancel: "Not Registered",
-    status_done: "✓ Done", status_renew: "♻ Renew", status_pending: "⏳ New Reg.", status_wait: "Pending", status_cancelled: "✖ Cancelled"
+    status_done: "✓ Done", status_renew: "♻ Renew", status_pending: "⏳ New Reg.", status_wait: "Pending", status_cancelled: "✖ Cancelled",
+    col_phase1: "PHASE 1", col_analysis: "ANALYSIS", col_trial: "TRIAL", col_phase3: "PHASE 3"
   }
 };
 
+// 2. ขยาย Map การแปลข้อมูลดิบจาก Database
 const dataMap = {
-  en: { "ผ่าน": "Passed", "ไม่ผ่าน": "Failed", "รอ": "Pending", "อยู่ระหว่างดำเนินการ": "In Progress", "ดำเนินการแล้ว": "Completed", "ต่ออายุ": "Renewal", "ยกเลิก": "Cancelled", "ไม่ขึ้นทะเบียน": "Not Registered" }
+  "ผ่าน": "Passed",
+  "ไม่ผ่าน": "Failed",
+  "รอ": "Pending",
+  "อยู่ระหว่างดำเนินการ": "In Progress",
+  "ดำเนินการแล้ว": "Completed",
+  "ต่ออายุ": "Renewal",
+  "ยกเลิก": "Cancelled",
+  "ไม่ขึ้นทะเบียน": "Not Registered",
+  "ขึ้นทะเบียนใหม่": "New Registration",
+  "ส่งตรวจ": "Submitted",
+  "ไม่มี": "None",
+  "มี": "Available"
 };
 
 function autoTranslate(val) {
-  if (!val || currentLang === 'th') return val || '-';
+  if (!val || val === '-' || currentLang === 'th') return val || '-';
+  
   let translated = val;
-  Object.keys(dataMap.en).forEach(key => {
-    if (translated.includes(key)) translated = translated.replace(new RegExp(key, 'g'), dataMap.en[key]);
+  // วนลูปแปลคำศัพท์ตาม Map
+  Object.keys(dataMap).forEach(key => {
+    const regex = new RegExp(key, 'g');
+    translated = translated.replace(regex, dataMap[key]);
   });
+  
   return translated;
 }
 
@@ -178,11 +197,13 @@ function updateUI() {
   $('useCode').textContent = t.search_btn;
 
   const labels = document.querySelectorAll('.stat-label');
-  labels[0].textContent = t.stat_total;
-  labels[1].textContent = t.stat_done;
-  labels[2].textContent = t.stat_pending;
-  labels[3].textContent = t.stat_renewal;
-  labels[4].textContent = t.stat_cancel;
+  if(labels.length > 0) {
+    labels[0].textContent = t.stat_total;
+    labels[1].textContent = t.stat_done;
+    labels[2].textContent = t.stat_pending;
+    labels[3].textContent = t.stat_renewal;
+    labels[4].textContent = t.stat_cancel;
+  }
   
   renderTable(currentRows);
 }
@@ -196,7 +217,7 @@ function toggleLang() {
 async function useAccessCode(inputCode){
   if(!inputCode.trim()) return;
   localStorage.setItem('customer_access_code', inputCode);
-  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดข้อมูล...</td></tr>`;
+  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">Loading... / กำลังโหลด...</td></tr>`;
 
   try {
     const { data: companies } = await sb.from('companies').select('code, name').or(`code.eq.${inputCode},plain_code.eq.${inputCode}`).limit(1);
@@ -206,9 +227,14 @@ async function useAccessCode(inputCode){
     currentRows = data || [];
     updateStats(currentRows);
     renderTable(currentRows);
-    if(companies?.[0]) $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ${currentLang === 'th' ? 'ทั้งหมด' : 'Total'} ${data.length} ${currentLang === 'th' ? 'รายการ' : 'Items'}`;
+    
+    if(companies?.[0]) {
+        const totalTxt = currentLang === 'th' ? 'ทั้งหมด' : 'Total';
+        const itemTxt = currentLang === 'th' ? 'รายการ' : 'Items';
+        $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ${totalTxt} ${currentRows.length} ${itemTxt}`;
+    }
   } catch(e) {
-    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">ไม่พบข้อมูล</td></tr>`;
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">Error / ไม่พบข้อมูล</td></tr>`;
   }
 }
 
@@ -228,7 +254,7 @@ function renderTable(rows){
   const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
 
   if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${currentLang === 'th' ? 'ไม่พบข้อมูล' : 'No Data Found'}</td></tr>`;
     return;
   }
 
@@ -244,25 +270,47 @@ function renderTable(rows){
     return `
     <tr>
       <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
-      <td><div class="trade-name">${r.trade_name}</div><div style="font-size:12px; color:var(--text-muted)">${r.common_name || '-'}</div></td>
-      <td><div style="font-weight:500; font-size:13px;">${autoTranslate(r.importer)}</div><div style="font-size:11px; color:var(--text-muted)">${autoTranslate(r.manufacturer_source)}</div></td>
-      <td><div class="info-group"><div class="info-item"><span class="label-tag">เฟส 1</span> <span>${autoTranslate(r.result_phase1)}</span></div><div class="info-item"><span class="label-tag">วิเคราะห์</span> <span>${autoTranslate(r.analysis_result)}</span></div></div></td>
-      <td><div class="info-group"><div class="info-item"><span class="label-tag">ทดลอง</span> <span>${autoTranslate(r.plan_trial)}</span></div><div class="info-item"><span class="label-tag">เฟส 3</span> <span>${autoTranslate(r.result_phase3)}</span></div></div></td>
+      <td>
+        <div class="trade-name">${r.trade_name}</div>
+        <div style="font-size:12px; color:var(--text-muted)">${autoTranslate(r.common_name)}</div>
+      </td>
+      <td>
+        <div style="font-weight:500; font-size:13px;">${autoTranslate(r.importer)}</div>
+        <div style="font-size:11px; color:var(--text-muted)">${autoTranslate(r.manufacturer_source)}</div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">${t.col_phase1}</span> <span>${autoTranslate(r.result_phase1)}</span></div>
+          <div class="info-item"><span class="label-tag">${t.col_analysis}</span> <span>${autoTranslate(r.analysis_result)}</span></div>
+        </div>
+      </td>
+      <td>
+        <div class="info-group">
+          <div class="info-item"><span class="label-tag">${t.col_trial}</span> <span>${autoTranslate(r.plan_trial)}</span></div>
+          <div class="info-item"><span class="label-tag">${t.col_phase3}</span> <span>${autoTranslate(r.result_phase3)}</span></div>
+        </div>
+      </td>
       <td style="font-size:12px; color:var(--text-muted)">${autoTranslate(r.note)}</td>
       <td>${statusBadge}</td>
     </tr>`;
   }).join('');
 }
 
+// Event Listeners
 $('useCode').onclick = () => useAccessCode($('access_code').value);
 $('q').oninput = () => renderTable(currentRows);
 $('refreshBtn').onclick = () => useAccessCode($('access_code').value);
 $('exportBtn').onclick = () => {
-  const dataToExport = currentRows.map((r, i) => ({ "No": i + 1, "Trade Name": r.trade_name, "Status": r.renewed_status }));
+  const dataToExport = currentRows.map((r, i) => ({ 
+      "No": i + 1, 
+      "Trade Name": r.trade_name, 
+      "Common Name": r.common_name,
+      "Status": currentLang === 'en' ? autoTranslate(r.renewed_status) : r.renewed_status 
+  }));
   const worksheet = XLSX.utils.json_to_sheet(dataToExport);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-  XLSX.writeFile(workbook, `Export.xlsx`);
+  XLSX.writeFile(workbook, `Registration_Export_${new Date().getTime()}.xlsx`);
 };
 
 window.onload = () => {
