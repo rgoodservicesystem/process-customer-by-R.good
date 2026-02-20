@@ -100,7 +100,7 @@
       <div style="width:1px; background:var(--border); margin: 0 5px;"></div>
       <input id="q" placeholder="ค้นหาชื่อสินค้า..." style="flex: 2;">
       <button id="refreshBtn" class="btn btn-outline">รีเฟรช</button>
-      <button id="exportBtn" class="btn btn-outline">Export</button>
+      <button id="exportBtn" class="btn btn-outline">ดาวน์โหลดไฟล์</button>
     </div>
   </div>
 
@@ -301,18 +301,48 @@ $('useCode').onclick = () => useAccessCode($('access_code').value);
 $('q').oninput = () => renderTable(currentRows);
 $('refreshBtn').onclick = () => useAccessCode($('access_code').value);
 $('exportBtn').onclick = () => {
-  const dataToExport = currentRows.map((r, i) => ({ 
-      "No": i + 1, 
-      "Trade Name": r.trade_name, 
-      "Common Name": r.common_name,
-      "Status": currentLang === 'en' ? autoTranslate(r.renewed_status) : r.renewed_status 
-  }));
-  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-  XLSX.writeFile(workbook, `Registration_Export_${new Date().getTime()}.xlsx`);
-};
+  if (currentRows.length === 0) return alert(currentLang === 'th' ? 'ไม่มีข้อมูลให้ดาวน์โหลด' : 'No data to export');
 
+  // 1. จัดเตรียมข้อมูลให้ครบถ้วนตามหน้าจอ
+  const dataToExport = currentRows.map((r, i) => {
+    // เลือกใช้ค่าตามภาษาที่เลือกอยู่ขณะนั้น
+    const translate = (val) => currentLang === 'en' ? autoTranslate(val) : (val || '-');
+    
+    return {
+      "ลำดับ (No.)": i + 1,
+      "ชื่อการค้า (Trade Name)": r.trade_name || '-',
+      "ชื่อสามัญ (Common Name)": translate(r.common_name),
+      "ผู้นำเข้า (Importer)": translate(r.importer),
+      "แหล่งผลิต (Source)": translate(r.manufacturer_source),
+      "เฟส 1 (Phase 1)": translate(r.result_phase1),
+      "ผลวิเคราะห์ (Analysis)": translate(r.analysis_result),
+      "ผลทดลอง (Trial)": translate(r.plan_trial),
+      "เฟส 3 (Phase 3)": translate(r.result_phase3),
+      "สถานะปัจจุบัน (Status)": translate(r.renewed_status),
+      "หมายเหตุ (Note)": translate(r.note)
+    };
+  });
+
+  // 2. สร้าง Workbook
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  
+  // 3. ปรับความกว้างคอลัมน์ใน Excel ให้ดูง่าย
+  const wscols = [
+    {wch: 8},  {wch: 25}, {wch: 25}, {wch: 20}, {wch: 25}, 
+    {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 30}
+  ];
+  worksheet['!cols'] = wscols;
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Registration_Data");
+
+  // 4. ตั้งชื่อไฟล์ตามชื่อบริษัทและวันที่
+  const timestamp = new Date().toISOString().split('T')[0];
+  const fileName = `Registry_Data_${$('access_code').value}_${timestamp}.xlsx`;
+
+  // 5. ดาวน์โหลดไฟล์
+  XLSX.writeFile(workbook, fileName);
+};
 window.onload = () => {
   updateUI();
   const savedCode = localStorage.getItem('customer_access_code');
