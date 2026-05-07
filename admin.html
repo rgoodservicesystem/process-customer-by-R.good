@@ -33,7 +33,6 @@
   .btn-ghost { background: #fff; border: 1px solid var(--border); color: var(--text); }
   .btn-danger { background: #fff; border: 1px solid #fee2e2; color: var(--danger); }
   
-  /* Table & Edit Mode */
   .table-box { border-radius: 12px; border: 1px solid var(--border); overflow: auto; max-height: 65vh; background: #fff; }
   table { width: 100%; border-collapse: collapse; min-width: 1600px; }
   th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 13px; font-weight: 700; color: #64748b; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border); }
@@ -44,31 +43,19 @@
   td.editing { padding: 0 !important; }
   td.editing input { width: 100%; height: 45px; border: 2px solid var(--primary) !important; padding: 0 10px; border-radius: 0; background: #fff; font-family: inherit; }
 
-  /* Row Status */
   tr.st-done { background-color: #f0fdf4 !important; }
   tr.st-process { background-color: #fffbeb !important; }
-   tr.st-renew { background-color: #f5f3ff !important; } /* สีม่วงอ่อนลาเวนเดอร์ */
+  tr.st-renew { background-color: #f5f3ff !important; }
   tr.st-fail { background-color: #fef2f2 !important; }
   .text-renew { color: #7c3aed; font-weight: 700; }
 
   .toolbar-quick { background: #f8fafc; border: 1px dashed var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
   .actions-row { display: flex; gap: 4px; justify-content: flex-start; }
-   /* เพิ่มต่อท้ายใน Style */
-.btn-sm {
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 14px;
-    line-height: 1;
-    transition: 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.btn-sm:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+  .btn-sm {
+    cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 14px;
+    line-height: 1; transition: 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .btn-sm:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 </style>
 </head>
 <body>
@@ -95,9 +82,6 @@
           <button id="setCodeBtn" class="btn btn-primary">บันทึกรหัส</button>
         </div>
       </div>
-      <div style="align-self: flex-end;">
-        <button id="expBtn" class="btn btn-ghost">Export Excel</button>
-      </div>
     </div>
   </div>
 
@@ -111,13 +95,15 @@
       <button class="btn btn-ghost" onclick="quickFill('-')">(-) ขีดฆ่า</button>
     </div>
   </div>
-<div style="align-self: flex-end; display: flex; gap: 10px;">
-  <button id="importBtn" class="btn btn-ghost" style="border-color: var(--success); color: var(--success);">📥 นำเข้า Excel</button>
-  <button id="addRowBtn" class="btn btn-primary">+ เพิ่มรายการใหม่</button>
-  <button id="expBtn" class="btn btn-ghost">Export Excel</button>
-</div>
 
-<input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls, .csv" />
+  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+    <button id="importBtn" class="btn btn-ghost" style="border-color: var(--success); color: var(--success);">📥 นำเข้า Excel</button>
+    <button id="addRowBtn" class="btn btn-primary">+ เพิ่มรายการใหม่</button>
+    <button id="expBtn" class="btn btn-ghost" onclick="exportExcel()">📤 Export Excel</button>
+  </div>
+
+  <input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls, .csv" />
+
   <div class="card" style="padding: 0;">
     <div style="padding: 16px; border-bottom: 1px solid var(--border);" class="row">
       <input id="adminSearch" placeholder="ค้นหาตามชื่อการค้า หรือ ชื่อสามัญ..." style="flex:1">
@@ -127,23 +113,24 @@
     <div class="table-box">
       <table>
         <thead>
-  <tr>
-    <th style="width: 40px;">#</th>
-    <th>ชื่อการค้า</th>
-    <th>ชื่อสามัญ</th>
-    <th>ผู้นำเข้า</th>
-    <th>แหล่งผลิต</th>
-    <th>เฟส 1</th>
-    <th>ผลวิเคราะห์</th>
-    <th>ผลทดลอง</th>
-    <th>เฟส 3</th>
-    <th>หมายเหตุ</th>
-    <th style="background: #f0f9ff; color: #0369a1;">💬 ข้อความเพิ่มเติม</th> <th>สถานะ</th>
-    <th style="width: 180px; text-align: center;">จัดการสถานะ</th>
-  </tr>
-</thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th>ชื่อการค้า</th>
+            <th>ชื่อสามัญ</th>
+            <th>ผู้นำเข้า</th>
+            <th>แหล่งผลิต</th>
+            <th>เฟส 1</th>
+            <th>ผลวิเคราะห์</th>
+            <th>ผลทดลอง</th>
+            <th>เฟส 3</th>
+            <th>หมายเหตุ</th>
+            <th style="background: #f0f9ff; color: #0369a1;">💬 ข้อความเพิ่มเติม</th>
+            <th>สถานะ</th>
+            <th style="width: 180px; text-align: center;">จัดการสถานะ</th>
+          </tr>
+        </thead>
         <tbody id="tbody">
-          <tr><td colspan="12" style="text-align:center; padding: 50px; color: #94a3b8;">กรุณาเลือกบริษัทด้านบนเพื่อเริ่มต้นจัดการข้อมูล</td></tr>
+          <tr><td colspan="13" style="text-align:center; padding: 50px; color: #94a3b8;">กรุณาเลือกบริษัทด้านบนเพื่อเริ่มต้นจัดการข้อมูล</td></tr>
         </tbody>
       </table>
     </div>
@@ -159,7 +146,6 @@ const $ = id => document.getElementById(id);
 let currentCompany = '';
 let cachedRows = [];
 
-// --- Init ---
 document.addEventListener('DOMContentLoaded', async ()=>{
   const { data: { session } } = await sb.auth.getSession();
   if(!session) return window.location.href = 'login.html';
@@ -193,20 +179,17 @@ function renderTable(){
     let statusTextClass = '';
 
     if(st === 'ดำเนินการแล้ว') {
-        rowCls = 'st-done';
-    } 
-    else if(st.includes('ไม่ผ่าน') || st.includes('ไม่ขึ้นทะเบียน') || st.includes('ยกเลิก')) {
-        rowCls = 'st-fail'; // สีแดง
-    } 
-    else if(st === 'อยู่ระหว่างดำเนินการ') {
-        rowCls = 'st-process'; // สีเหลือง
-    } 
-    else if(st === 'ต่ออายุ') {
-        rowCls = 'st-renew'; // เปลี่ยนเป็นสีม่วงแล้วตาม CSS ด้านบน
-        statusTextClass = 'text-renew'; 
+      rowCls = 'st-done';
+    } else if(st.includes('ไม่ผ่าน') || st.includes('ไม่ขึ้นทะเบียน') || st.includes('ยกเลิก')) {
+      rowCls = 'st-fail';
+    } else if(st === 'อยู่ระหว่างดำเนินการ') {
+      rowCls = 'st-process';
+    } else if(st === 'ต่ออายุ') {
+      rowCls = 'st-renew';
+      statusTextClass = 'text-renew';
     }
 
-return `
+    return `
 <tr class="${rowCls}">
   <td style="color:#94a3b8; font-size:11px">${i+1}</td>
   <td class="editable" onclick="editCell(this,'${r.id}','trade_name')"><strong>${r.trade_name||'-'}</strong></td>
@@ -218,11 +201,9 @@ return `
   <td class="editable" onclick="editCell(this,'${r.id}','plan_trial')">${r.plan_trial||'-'}</td>
   <td class="editable" onclick="editCell(this,'${r.id}','result_phase3')">${r.result_phase3||'-'}</td>
   <td class="editable" onclick="editCell(this,'${r.id}','note')">${r.note||'-'}</td>
-  
   <td class="editable" onclick="editCell(this,'${r.id}','customer_message')" style="background: #f0f9ff;">
     ${r.customer_message || '-'}
   </td>
-
   <td class="editable" onclick="editCell(this,'${r.id}','renewed_status')" style="font-weight:600;">
     <small class="${statusTextClass}">${st || 'รอดำเนินการ'}</small>
   </td>
@@ -241,17 +222,13 @@ return `
   $('adminCount').textContent = `ทั้งหมด ${filtered.length} รายการ`;
 }
 
-// --- Logic การแก้ไข (คลิก 1 ทีติดชัวร์) ---
 window.editCell = (td, id, field) => {
   if (td.classList.contains('editing')) return;
-
   const oldVal = td.textContent === '-' ? '' : td.textContent;
   td.classList.add('editing');
-  
   const input = document.createElement('input');
   input.value = oldVal;
-  input.id = 'activeInputTarget'; // เป้าหมายสำหรับปุ่มลัดสัญลักษณ์
-  
+  input.id = 'activeInputTarget';
   td.innerHTML = '';
   td.appendChild(input);
   input.focus();
@@ -294,7 +271,13 @@ window.updateStatus = async (id, st) => {
   loadDocs(currentCompany);
 };
 
-window.delRow = async id => { if(confirm('ลบรายการนี้?')) { await sb.from('product_regs').delete().eq('id', id); loadDocs(currentCompany); } };
+window.delRow = async id => {
+  if(confirm('ลบรายการนี้?')) {
+    await sb.from('product_regs').delete().eq('id', id);
+    loadDocs(currentCompany);
+  }
+};
+
 $('adminSearch').oninput = renderTable;
 $('signOutBtn').onclick = async () => { await sb.auth.signOut(); window.location.href='login.html'; };
 
@@ -303,9 +286,9 @@ $('setCodeBtn').onclick = async () => {
   await sb.from('companies').upsert({ code: currentCompany, plain_code: code }, { onConflict: 'code' });
   alert('บันทึกรหัสลูกค้าเรียบร้อย');
 };
+
 $('addRowBtn').onclick = async () => {
   if (!currentCompany) return alert('กรุณาเลือกบริษัทก่อนครับ');
-  
   const newData = {
     company_code: currentCompany,
     trade_name: 'ชื่อใหม่ (คลิกเพื่อแก้ไข)',
@@ -313,21 +296,58 @@ $('addRowBtn').onclick = async () => {
     importer: '-',
     renewed_status: 'รอดำเนินการ'
   };
-
   const { error } = await sb.from('product_regs').insert([newData]);
   if (error) {
     alert('เกิดข้อผิดพลาด: ' + error.message);
   } else {
-    loadDocs(currentCompany); // โหลดข้อมูลใหม่
+    loadDocs(currentCompany);
   }
 };
-// คลิกปุ่มแล้วไปเปิดเลือกไฟล์
+
+// ── Export Excel ──────────────────────────────────────────────
+function exportExcel() {
+  if (!cachedRows.length) return alert('ไม่มีข้อมูลให้ export ครับ กรุณาเลือกบริษัทก่อน');
+
+  const headers = [
+    'ชื่อการค้า', 'ชื่อสามัญ', 'ผู้นำเข้า', 'แหล่งผลิต',
+    'เฟส 1', 'ผลวิเคราะห์', 'ผลทดลอง', 'เฟส 3',
+    'หมายเหตุ', 'ข้อความเพิ่มเติม', 'สถานะ'
+  ];
+
+  const mapped = cachedRows.map(r => [
+    r.trade_name        || '-',
+    r.common_name       || '-',
+    r.importer          || '-',
+    r.manufacturer_source || '-',
+    r.result_phase1     || '-',
+    r.analysis_result   || '-',
+    r.plan_trial        || '-',
+    r.result_phase3     || '-',
+    r.note              || '-',
+    r.customer_message  || '-',
+    r.renewed_status    || 'รอดำเนินการ'
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...mapped]);
+
+  // ปรับความกว้างคอลัมน์อัตโนมัติ
+  ws['!cols'] = headers.map((h, i) => {
+    const maxLen = Math.max(h.length, ...mapped.map(row => String(row[i] || '').length));
+    return { wch: Math.min(maxLen + 4, 40) };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายการทะเบียน');
+
+  const fileName = `export_${currentCompany}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+// ── Import Excel ──────────────────────────────────────────────
 $('importBtn').onclick = () => $('fileInput').click();
 
-// เมื่อเลือกไฟล์เสร็จ
 $('fileInput').onchange = async (e) => {
   if (!currentCompany) return alert('กรุณาเลือกบริษัทก่อนนำเข้าข้อมูล');
-  
   const file = e.target.files[0];
   const reader = new FileReader();
 
@@ -337,7 +357,6 @@ $('fileInput').onchange = async (e) => {
     const sheetName = workbook.SheetNames[0];
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // เตรียมข้อมูลเพื่อเตรียม Insert
     const toInsert = rows.map(row => ({
       company_code: currentCompany,
       trade_name: row['ชื่อการค้า'] || row['trade_name'] || '-',
@@ -361,7 +380,7 @@ $('fileInput').onchange = async (e) => {
         loadDocs(currentCompany);
       }
     }
-    $('fileInput').value = ''; // Reset input
+    $('fileInput').value = '';
   };
 
   reader.readAsBinaryString(file);
