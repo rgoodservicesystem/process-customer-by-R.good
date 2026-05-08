@@ -116,7 +116,7 @@
     <div class="table-scroll">
       <table>
         <thead>
-          <tr>
+          <tr id="table-head">
             <th style="width:50px; text-align:center">#</th>
             <th style="width:250px">ผลิตภัณฑ์</th>
             <th style="width:200px">ผู้นำเข้า/แหล่งผลิต</th>
@@ -143,24 +143,81 @@ const $ = id => document.getElementById(id);
 
 let currentRows = [];
 let currentLang = localStorage.getItem('lang') || 'th';
+let lastCompanyName = '';
 
-// 1. เพิ่มคำศัพท์ที่พบบ่อยในฐานข้อมูล
 const translations = {
   th: {
-    nav_dash: "📊 ภาพรวมสรุป", search_placeholder: "รหัสลูกค้า (RG-XXXX)", search_btn: "ค้นหาข้อมูล",
-    stat_total: "ทั้งหมด", stat_done: "สำเร็จแล้ว", stat_pending: "ขึ้นทะเบียนใหม่", stat_renewal: "ต่ออายุ", stat_cancel: "ไม่ขึ้นทะเบียน",
-    status_done: "✓ สำเร็จ", status_renew: "♻ ต่ออายุ", status_pending: "⏳ ขึ้นทะเบียนใหม่", status_wait: "รอดำเนินการ", status_cancelled: "✖ ไม่ขึ้นทะเบียน",
-    col_phase1: "เฟส 1", col_analysis: "วิเคราะห์", col_trial: "ทดลอง", col_phase3: "เฟส 3"
+    nav_dash: "📊 ภาพรวมสรุป",
+    search_code_placeholder: "รหัสลูกค้า (RG-XXXX)",
+    search_name_placeholder: "ค้นหาชื่อสินค้า...",
+    search_btn: "ค้นหาข้อมูล",
+    refresh_btn: "รีเฟรช",
+    export_btn: "ดาวน์โหลดไฟล์",
+    stat_total: "ทั้งหมด",
+    stat_done: "สำเร็จแล้ว",
+    stat_pending: "ขึ้นทะเบียนใหม่",
+    stat_renewal: "ต่ออายุ",
+    stat_cancel: "ไม่ขึ้นทะเบียน",
+    status_done: "✓ สำเร็จ",
+    status_renew: "♻ ต่ออายุ",
+    status_pending: "⏳ ขึ้นทะเบียนใหม่",
+    status_wait: "รอดำเนินการ",
+    status_cancelled: "✖ ไม่ขึ้นทะเบียน",
+    col_phase1: "เฟส 1",
+    col_analysis: "วิเคราะห์",
+    col_trial: "ทดลอง",
+    col_phase3: "เฟส 3",
+    col_product: "ผลิตภัณฑ์",
+    col_importer: "ผู้นำเข้า/แหล่งผลิต",
+    col_phase1_analysis: "ขั้นตอน: เฟส 1 & ผลวิเคราะห์",
+    col_trial_phase3: "ขั้นตอน: ผลทดลอง & เฟส 3",
+    col_note: "หมายเหตุ",
+    col_status: "สถานะปัจจุบัน",
+    empty_initial: "กรุณาระบุรหัสเพื่อดูข้อมูล",
+    empty_nodata: "ไม่พบข้อมูล",
+    loading: "Loading... / กำลังโหลด...",
+    error: "Error / ไม่พบข้อมูล",
+    no_export: "ไม่มีข้อมูลให้ดาวน์โหลด",
+    info_total: "ทั้งหมด",
+    info_items: "รายการ"
   },
   en: {
-    nav_dash: "📊 Dashboard", search_placeholder: "Customer Code (RG-XXXX)", search_btn: "Search",
-    stat_total: "Total", stat_done: "Completed", stat_pending: "New Reg.", stat_renewal: "Renewal", stat_cancel: "Not Registered",
-    status_done: "✓ Done", status_renew: "♻ Renew", status_pending: "⏳ New Reg.", status_wait: "Pending", status_cancelled: "✖ Cancelled",
-    col_phase1: "PHASE 1", col_analysis: "ANALYSIS", col_trial: "TRIAL", col_phase3: "PHASE 3"
+    nav_dash: "📊 Dashboard",
+    search_code_placeholder: "Customer Code (RG-XXXX)",
+    search_name_placeholder: "Search product name...",
+    search_btn: "Search",
+    refresh_btn: "Refresh",
+    export_btn: "Download File",
+    stat_total: "Total",
+    stat_done: "Completed",
+    stat_pending: "New Reg.",
+    stat_renewal: "Renewal",
+    stat_cancel: "Not Registered",
+    status_done: "✓ Done",
+    status_renew: "♻ Renewal",
+    status_pending: "⏳ New Reg.",
+    status_wait: "Pending",
+    status_cancelled: "✖ Cancelled",
+    col_phase1: "PHASE 1",
+    col_analysis: "ANALYSIS",
+    col_trial: "TRIAL",
+    col_phase3: "PHASE 3",
+    col_product: "Product",
+    col_importer: "Importer / Source",
+    col_phase1_analysis: "Steps: Phase 1 & Analysis",
+    col_trial_phase3: "Steps: Trial & Phase 3",
+    col_note: "Note",
+    col_status: "Current Status",
+    empty_initial: "Please enter a customer code to view data",
+    empty_nodata: "No Data Found",
+    loading: "Loading...",
+    error: "Error — Data not found",
+    no_export: "No data to export",
+    info_total: "Total",
+    info_items: "Items"
   }
 };
 
-// 2. ขยาย Map การแปลข้อมูลดิบจาก Database
 const dataMap = {
   "ผ่าน": "Passed",
   "ไม่ผ่าน": "Failed",
@@ -178,34 +235,63 @@ const dataMap = {
 
 function autoTranslate(val) {
   if (!val || val === '-' || currentLang === 'th') return val || '-';
-  
   let translated = val;
-  // วนลูปแปลคำศัพท์ตาม Map
   Object.keys(dataMap).forEach(key => {
     const regex = new RegExp(key, 'g');
     translated = translated.replace(regex, dataMap[key]);
   });
-  
   return translated;
 }
 
 function updateUI() {
   const t = translations[currentLang];
-  $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
-  $('nav-dashboard').textContent = t.nav_dash;
-  $('access_code').placeholder = t.search_placeholder;
-  $('useCode').textContent = t.search_btn;
 
+  // Language button
+  $('langBtn').textContent = currentLang === 'th' ? '🇹🇭 TH' : '🇺🇸 EN';
+
+  // Navigation
+  $('nav-dashboard').textContent = t.nav_dash;
+
+  // Input placeholders & buttons
+  $('access_code').placeholder = t.search_code_placeholder;
+  $('q').placeholder = t.search_name_placeholder;
+  $('useCode').textContent = t.search_btn;
+  $('refreshBtn').textContent = t.refresh_btn;
+  $('exportBtn').textContent = t.export_btn;
+
+  // Stat labels
   const labels = document.querySelectorAll('.stat-label');
-  if(labels.length > 0) {
+  if (labels.length >= 5) {
     labels[0].textContent = t.stat_total;
     labels[1].textContent = t.stat_done;
     labels[2].textContent = t.stat_pending;
     labels[3].textContent = t.stat_renewal;
     labels[4].textContent = t.stat_cancel;
   }
-  
+
+  // Table headers
+  const thead = $('table-head');
+  if (thead) {
+    thead.innerHTML = `
+      <th style="width:50px; text-align:center">#</th>
+      <th style="width:250px">${t.col_product}</th>
+      <th style="width:200px">${t.col_importer}</th>
+      <th style="width:220px">${t.col_phase1_analysis}</th>
+      <th style="width:220px">${t.col_trial_phase3}</th>
+      <th style="width:200px">${t.col_note}</th>
+      <th style="width:160px">${t.col_status}</th>
+    `;
+  }
+
+  // Re-render table and footer info with new language
   renderTable(currentRows);
+  updateTableInfo();
+}
+
+function updateTableInfo() {
+  if (!lastCompanyName) return;
+  const t = translations[currentLang];
+  $('table-info').innerHTML = `🏢 <strong>${lastCompanyName}</strong> | ${t.info_total} ${currentRows.length} ${t.info_items}`;
 }
 
 function toggleLang() {
@@ -214,27 +300,26 @@ function toggleLang() {
   updateUI();
 }
 
-async function useAccessCode(inputCode){
-  if(!inputCode.trim()) return;
+async function useAccessCode(inputCode) {
+  if (!inputCode.trim()) return;
   localStorage.setItem('customer_access_code', inputCode);
-  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">Loading... / กำลังโหลด...</td></tr>`;
+  const t = translations[currentLang];
+  $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state">${t.loading}</td></tr>`;
 
   try {
     const { data: companies } = await sb.from('companies').select('code, name').or(`code.eq.${inputCode},plain_code.eq.${inputCode}`).limit(1);
     let targetCode = companies?.[0]?.code || inputCode;
     const { data, error } = await sb.from('product_regs').select('*').eq('company_code', targetCode).order('id');
-    
+
     currentRows = data || [];
+    lastCompanyName = companies?.[0]?.name || '';
+
     updateStats(currentRows);
     renderTable(currentRows);
-    
-    if(companies?.[0]) {
-        const totalTxt = currentLang === 'th' ? 'ทั้งหมด' : 'Total';
-        const itemTxt = currentLang === 'th' ? 'รายการ' : 'Items';
-        $('table-info').innerHTML = `🏢 <strong>${companies[0].name}</strong> | ${totalTxt} ${currentRows.length} ${itemTxt}`;
-    }
-  } catch(e) {
-    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">Error / ไม่พบข้อมูล</td></tr>`;
+    updateTableInfo();
+  } catch (e) {
+    const t = translations[currentLang];
+    $('tbody').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger)">${t.error}</td></tr>`;
   }
 }
 
@@ -247,18 +332,23 @@ function updateStats(rows) {
   $('stat-cancel').textContent = rows.filter(r => (r.renewed_status || '').includes('ไม่ขึ้นทะเบียน') || (r.renewed_status || '').includes('ยกเลิก')).length;
 }
 
-function renderTable(rows){
+function renderTable(rows) {
   const tb = $('tbody');
   const t = translations[currentLang];
-  const q = ($('q').value||'').trim().toLowerCase();
+  const q = ($('q').value || '').trim().toLowerCase();
   const filtered = q ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : rows;
 
-  if(!filtered.length){
-    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${currentLang === 'th' ? 'ไม่พบข้อมูล' : 'No Data Found'}</td></tr>`;
+  if (!rows.length && !currentRows.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.empty_initial}</td></tr>`;
     return;
   }
 
-  tb.innerHTML = filtered.map((r,i)=> {
+  if (!filtered.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="empty-state">${t.empty_nodata}</td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = filtered.map((r, i) => {
     const st = (r.renewed_status || '').trim();
     let statusBadge = `<span class="badge bg-info">${t.status_wait}</span>`;
 
@@ -269,7 +359,7 @@ function renderTable(rows){
 
     return `
     <tr>
-      <td style="text-align:center; color:var(--text-muted)">${i+1}</td>
+      <td style="text-align:center; color:var(--text-muted)">${i + 1}</td>
       <td>
         <div class="trade-name">${r.trade_name}</div>
         <div style="font-size:12px; color:var(--text-muted)">${autoTranslate(r.common_name)}</div>
@@ -301,13 +391,11 @@ $('useCode').onclick = () => useAccessCode($('access_code').value);
 $('q').oninput = () => renderTable(currentRows);
 $('refreshBtn').onclick = () => useAccessCode($('access_code').value);
 $('exportBtn').onclick = () => {
-  if (currentRows.length === 0) return alert(currentLang === 'th' ? 'ไม่มีข้อมูลให้ดาวน์โหลด' : 'No data to export');
+  const t = translations[currentLang];
+  if (currentRows.length === 0) return alert(t.no_export);
 
-  // 1. จัดเตรียมข้อมูลให้ครบถ้วนตามหน้าจอ
   const dataToExport = currentRows.map((r, i) => {
-    // เลือกใช้ค่าตามภาษาที่เลือกอยู่ขณะนั้น
     const translate = (val) => currentLang === 'en' ? autoTranslate(val) : (val || '-');
-    
     return {
       "ลำดับ (No.)": i + 1,
       "ชื่อการค้า (Trade Name)": r.trade_name || '-',
@@ -323,12 +411,9 @@ $('exportBtn').onclick = () => {
     };
   });
 
-  // 2. สร้าง Workbook
   const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-  
-  // 3. ปรับความกว้างคอลัมน์ใน Excel ให้ดูง่าย
   const wscols = [
-    {wch: 8},  {wch: 25}, {wch: 25}, {wch: 20}, {wch: 25}, 
+    {wch: 8}, {wch: 25}, {wch: 25}, {wch: 20}, {wch: 25},
     {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 30}
   ];
   worksheet['!cols'] = wscols;
@@ -336,17 +421,15 @@ $('exportBtn').onclick = () => {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Registration_Data");
 
-  // 4. ตั้งชื่อไฟล์ตามชื่อบริษัทและวันที่
   const timestamp = new Date().toISOString().split('T')[0];
   const fileName = `Registry_Data_${$('access_code').value}_${timestamp}.xlsx`;
-
-  // 5. ดาวน์โหลดไฟล์
   XLSX.writeFile(workbook, fileName);
 };
+
 window.onload = () => {
   updateUI();
   const savedCode = localStorage.getItem('customer_access_code');
-  if(savedCode) { $('access_code').value = savedCode; useAccessCode(savedCode); }
+  if (savedCode) { $('access_code').value = savedCode; useAccessCode(savedCode); }
 };
 </script>
 </body>
